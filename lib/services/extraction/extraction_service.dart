@@ -2,11 +2,17 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as path;
 import '../../core/errors/app_exceptions.dart';
-import '../../core/utils/file_utils.dart';
 import '../../core/services/logging_service.dart';
+import '../../core/platform/interfaces/i_platform_file_handler.dart';
+import '../../core/platform/platform_factory.dart';
 
 /// Service for extracting archive files
 class ExtractionService {
+  final IPlatformFileHandler _platformFileHandler;
+
+  /// Creates an ExtractionService with platform-specific file handler
+  ExtractionService([IPlatformFileHandler? platformFileHandler])
+      : _platformFileHandler = platformFileHandler ?? PlatformFactory.createFileHandler();
   /// Extract an archive file to a destination directory
   Future<void> extractArchive(
     String archivePath,
@@ -125,10 +131,15 @@ class ExtractionService {
             onProgress(extractedFiles / totalFiles);
           }
 
-          // Make executable if it's an Eden executable on Linux
-          if (Platform.isLinux && FileUtils.isEdenExecutable(file.name)) {
+          // Make executable if it's an Eden executable (platform-specific)
+          if (_platformFileHandler.isEdenExecutable(file.name)) {
             LoggingService.debug('Making file executable: ${file.name}');
-            await Process.run('chmod', ['+x', extractPath]);
+            try {
+              await _platformFileHandler.makeExecutable(extractPath);
+            } catch (e) {
+              LoggingService.warning('Failed to make file executable: ${file.name}', e);
+              // Continue extraction even if chmod fails
+            }
           }
         }
       }

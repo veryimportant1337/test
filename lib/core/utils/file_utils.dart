@@ -1,33 +1,37 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
+import '../platform/platform_factory.dart';
+import '../platform/interfaces/i_platform_file_handler.dart';
 
 /// Utility functions for file operations
+/// 
+/// This class provides both platform-agnostic utilities and backward-compatible
+/// wrappers for platform-specific operations. For new code, prefer using
+/// IPlatformFileHandler directly through PlatformFactory.createFileHandler().
 class FileUtils {
+  /// Cached platform file handler instance
+  static IPlatformFileHandler? _platformFileHandler;
+  
+  /// Gets the platform-specific file handler instance
+  static IPlatformFileHandler get _fileHandler {
+    _platformFileHandler ??= PlatformFactory.createFileHandler();
+    return _platformFileHandler!;
+  }
+
   /// Check if a filename represents an Eden executable
+  /// 
+  /// @deprecated Use IPlatformFileHandler.isEdenExecutable() instead
+  /// This method is maintained for backward compatibility
   static bool isEdenExecutable(String filename) {
-    final name = filename.toLowerCase();
-    if (Platform.isWindows) {
-      // Prioritize GUI version, avoid command-line version
-      return name == 'eden.exe';
-    } else {
-      return name == 'eden' ||
-          name == 'eden-stable' ||
-          name == 'eden-nightly' ||
-          (name.contains('eden') && !name.contains('.'));
-    }
+    return _fileHandler.isEdenExecutable(filename);
   }
 
   /// Get the expected Eden executable path for a given install directory
+  /// 
+  /// @deprecated Use IPlatformFileHandler.getEdenExecutablePath() instead
+  /// This method is maintained for backward compatibility
   static String getEdenExecutablePath(String installPath, [String? channel]) {
-    if (Platform.isWindows) {
-      return path.join(installPath, 'eden.exe');
-    } else if (Platform.isLinux && channel != null) {
-      // Use channel-specific naming for Linux AppImages
-      final fileName = channel == 'nightly' ? 'eden-nightly' : 'eden-stable';
-      return path.join(installPath, fileName);
-    } else {
-      return path.join(installPath, 'eden');
-    }
+    return _fileHandler.getEdenExecutablePath(installPath, channel);
   }
 
   /// Format file size in human-readable format
@@ -68,28 +72,16 @@ class FileUtils {
     }
   }
 
-  /// Check if a directory contains Eden program files (safer implementation)
+  /// Check if a directory contains Eden program files
+  /// 
+  /// @deprecated Use IPlatformFileHandler.containsEdenFiles() instead
+  /// This method is maintained for backward compatibility
   static Future<bool> containsEdenFiles(String folderPath) async {
-    final dir = Directory(folderPath);
+    return await _fileHandler.containsEdenFiles(folderPath);
+  }
 
-    await for (final entity in dir.list(recursive: true)) {
-      if (entity is File) {
-        final filename = path.basename(entity.path).toLowerCase();
-
-        // Check for the main executable
-        if (isEdenExecutable(filename)) {
-          return true;
-        }
-
-        // Check for other characteristic files of the emulator distribution
-        if (filename.contains('eden') &&
-            (filename.contains('platforms') ||
-                filename.endsWith('.appimage'))) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+  /// Resets the cached platform file handler (primarily for testing)
+  static void resetCache() {
+    _platformFileHandler = null;
   }
 }

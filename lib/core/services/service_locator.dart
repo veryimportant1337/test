@@ -5,6 +5,7 @@ import '../../services/download/download_service.dart';
 import '../../services/extraction/extraction_service.dart';
 import '../../services/installation/installation_service.dart';
 import '../../services/launcher/launcher_service.dart';
+import '../platform/platform_factory.dart';
 
 /// Simple service locator for dependency injection
 class ServiceLocator {
@@ -36,12 +37,14 @@ class ServiceLocator {
     locator.register<PreferencesService>(PreferencesService());
     locator.register<GitHubApiService>(GitHubApiService());
     locator.register<DownloadService>(DownloadService());
-    locator.register<ExtractionService>(ExtractionService());
+    locator.register<ExtractionService>(
+      ExtractionService(PlatformFactory.createFileHandler()),
+    );
 
     // Register services that depend on others
     final preferencesService = locator.get<PreferencesService>();
     locator.register<InstallationService>(
-      InstallationService(preferencesService),
+      InstallationService(preferencesService, PlatformFactory.createFileHandler()),
     );
 
     final installationService = locator.get<InstallationService>();
@@ -55,9 +58,9 @@ class ServiceLocator {
         locator.get<GitHubApiService>(),
         preferencesService,
         locator.get<DownloadService>(),
-        locator.get<ExtractionService>(),
-        installationService,
         locator.get<LauncherService>(),
+        PlatformFactory.createInstaller(),
+        PlatformFactory.createVersionDetector(),
       ),
     );
   }

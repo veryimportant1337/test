@@ -3,13 +3,17 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/file_utils.dart';
+import '../../core/platform/interfaces/i_platform_file_handler.dart';
+import '../../core/platform/platform_factory.dart';
 import '../storage/preferences_service.dart';
 
 /// Service for managing Eden installation
 class InstallationService {
   final PreferencesService _preferencesService;
+  final IPlatformFileHandler _fileHandler;
 
-  InstallationService(this._preferencesService);
+  InstallationService(this._preferencesService, [IPlatformFileHandler? fileHandler])
+      : _fileHandler = fileHandler ?? PlatformFactory.createFileHandler();
 
   /// Get the installation path, creating it if necessary
   Future<String> getInstallPath() async {
@@ -57,7 +61,7 @@ class InstallationService {
           continue;
         }
 
-        if (await FileUtils.containsEdenFiles(entity.path)) {
+        if (await _fileHandler.containsEdenFiles(entity.path)) {
           await _mergeEdenFolder(entity.path, targetPath);
           await entity.delete(recursive: true);
           await _scanAndStoreEdenExecutable(targetPath);
@@ -74,7 +78,7 @@ class InstallationService {
     await for (final entity in Directory(installPath).list(recursive: true)) {
       if (entity is File) {
         final filename = path.basename(entity.path);
-        if (FileUtils.isEdenExecutable(filename)) {
+        if (_fileHandler.isEdenExecutable(filename)) {
           foundExecutables.add(entity.path);
         }
       }
@@ -116,9 +120,8 @@ class InstallationService {
       selectedExecutable,
     );
 
-    if (Platform.isLinux) {
-      await Process.run('chmod', ['+x', selectedExecutable]);
-    }
+    // Make the executable file executable (relevant for Unix-like systems)
+    await _fileHandler.makeExecutable(selectedExecutable);
   }
 
   /// Clean existing Eden folder while preserving user data
