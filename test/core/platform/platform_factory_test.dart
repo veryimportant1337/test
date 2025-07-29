@@ -44,9 +44,12 @@ void main() {
       if (config.supportedFileExtensions.isNotEmpty) {
         final extension = config.supportedFileExtensions.first;
         final extensionWithoutDot = extension.substring(1);
-        
+
         expect(PlatformFactory.isFileExtensionSupported(extension), isTrue);
-        expect(PlatformFactory.isFileExtensionSupported(extensionWithoutDot), isTrue);
+        expect(
+          PlatformFactory.isFileExtensionSupported(extensionWithoutDot),
+          isTrue,
+        );
       }
     });
 
@@ -56,7 +59,7 @@ void main() {
         expect(PlatformFactory.isChannelSupported('stable'), isTrue);
         expect(PlatformFactory.isChannelSupported('STABLE'), isTrue);
       }
-      
+
       expect(PlatformFactory.isChannelSupported('nonexistent'), isFalse);
     });
 
@@ -80,35 +83,38 @@ void main() {
       expect(info['operatingSystem'], isA<String>());
     });
 
-    test('factory methods throw appropriate exceptions for unimplemented platforms', () {
-      expect(
-        () => PlatformFactory.createInstaller(),
-        throwsA(isA<PlatformOperationException>()),
-      );
-      
-      expect(
-        () => PlatformFactory.createLauncher(),
-        throwsA(isA<PlatformOperationException>()),
-      );
-      
-      expect(
-        () => PlatformFactory.createFileHandler(),
-        throwsA(isA<PlatformOperationException>()),
-      );
-      
-      expect(
-        () => PlatformFactory.createVersionDetector(),
-        throwsA(isA<PlatformOperationException>()),
-      );
-    });
+    test(
+      'factory methods throw appropriate exceptions for unimplemented platforms',
+      () {
+        expect(
+          () => PlatformFactory.createInstaller(),
+          throwsA(isA<PlatformOperationException>()),
+        );
+
+        expect(
+          () => PlatformFactory.createLauncher(),
+          throwsA(isA<PlatformOperationException>()),
+        );
+
+        expect(
+          () => PlatformFactory.createFileHandler(),
+          throwsA(isA<PlatformOperationException>()),
+        );
+
+        expect(
+          () => PlatformFactory.createVersionDetector(),
+          throwsA(isA<PlatformOperationException>()),
+        );
+      },
+    );
 
     test('resetCache clears cached values', () {
       // Get config to populate cache
       PlatformFactory.getCurrentPlatformConfig();
-      
+
       // Reset cache
       PlatformFactory.resetCache();
-      
+
       // Should still work after reset
       final config = PlatformFactory.getCurrentPlatformConfig();
       expect(config, isA<PlatformConfig>());

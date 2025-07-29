@@ -12,7 +12,9 @@ class ExtractionService {
 
   /// Creates an ExtractionService with platform-specific file handler
   ExtractionService([IPlatformFileHandler? platformFileHandler])
-      : _platformFileHandler = platformFileHandler ?? PlatformFactory.createFileHandler();
+    : _platformFileHandler =
+          platformFileHandler ?? PlatformFactory.createFileHandler();
+
   /// Extract an archive file to a destination directory
   Future<void> extractArchive(
     String archivePath,
@@ -93,7 +95,8 @@ class ExtractionService {
           LoggingService.info(
             'File appears to be a ZIP/APK based on signature',
           );
-          if (Platform.isAndroid) {
+          final platformInfo = PlatformFactory.getPlatformInfo();
+          if (platformInfo['platformName'] == 'Android') {
             LoggingService.info('Treating as APK file on Android platform');
             // This should be handled by the update service, not here
             throw ExtractionException(
@@ -137,7 +140,10 @@ class ExtractionService {
             try {
               await _platformFileHandler.makeExecutable(extractPath);
             } catch (e) {
-              LoggingService.warning('Failed to make file executable: ${file.name}', e);
+              LoggingService.warning(
+                'Failed to make file executable: ${file.name}',
+                e,
+              );
               // Continue extraction even if chmod fails
             }
           }
@@ -161,7 +167,8 @@ class ExtractionService {
   }) async {
     try {
       ProcessResult result;
-      if (Platform.isWindows) {
+      final platformInfo = PlatformFactory.getPlatformInfo();
+      if (platformInfo['platformName'] == 'Windows') {
         final sevenZipPaths = [
           'C:\\Program Files\\7-Zip\\7z.exe',
           'C:\\Program Files (x86)\\7-Zip\\7z.exe',
@@ -210,11 +217,14 @@ class ExtractionService {
       // Fall through to throw exception
     }
 
+    final platformInfo = PlatformFactory.getPlatformInfo();
+    final installInstructions = platformInfo['platformName'] == 'Windows'
+        ? 'Windows: Download from https://www.7-zip.org/'
+        : 'Linux: sudo apt install p7zip-full';
+
     throw ExtractionException(
       '7z extraction failed',
-      'Please install 7-Zip:\n'
-          'Windows: Download from https://www.7-zip.org/\n'
-          'Linux: sudo apt install p7zip-full',
+      'Please install 7-Zip:\n$installInstructions',
     );
   }
 }

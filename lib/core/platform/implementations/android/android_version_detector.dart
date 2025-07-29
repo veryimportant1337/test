@@ -7,7 +7,7 @@ import '../../../../services/storage/preferences_service.dart';
 import '../../interfaces/i_platform_version_detector.dart';
 
 /// Android-specific version detector implementation
-/// 
+///
 /// Handles version detection and storage using SharedPreferences-based tracking
 /// and manages Android installation metadata storage and retrieval.
 class AndroidVersionDetector implements IPlatformVersionDetector {
@@ -120,7 +120,9 @@ class AndroidVersionDetector implements IPlatformVersionDetector {
         }
       }
 
-      LoggingService.info('No Android installation found for channel: $channel');
+      LoggingService.info(
+        'No Android installation found for channel: $channel',
+      );
       return null;
     } catch (e) {
       LoggingService.error('Error getting Android current version: $e');
@@ -169,12 +171,14 @@ class AndroidVersionDetector implements IPlatformVersionDetector {
   @override
   Future<void> clearVersionInfo(String channel) async {
     try {
-      LoggingService.info('Clearing Android version info for channel: $channel');
+      LoggingService.info(
+        'Clearing Android version info for channel: $channel',
+      );
 
       // Clear all Android-specific version storage
       await _preferencesService.remove('android_install_metadata_$channel');
       await _preferencesService.remove('android_last_install_$channel');
-      
+
       // Clear general current version
       await _preferencesService.remove('current_version_$channel');
 
@@ -210,11 +214,14 @@ class AndroidVersionDetector implements IPlatformVersionDetector {
   }
 
   /// Debug method to manually set version for testing
-  Future<void> setCurrentVersionForTesting(String version, String channel) async {
+  Future<void> setCurrentVersionForTesting(
+    String version,
+    String channel,
+  ) async {
     await _preferencesService.setString('test_version_override', version);
     await _preferencesService.setString('test_version_channel', channel);
     await _preferencesService.setCurrentVersion(channel, version);
-    
+
     LoggingService.info('Test version set: $version for channel: $channel');
   }
 
@@ -225,7 +232,10 @@ class AndroidVersionDetector implements IPlatformVersionDetector {
 
   /// Store the successful package name for future launches (Android-specific)
   Future<void> storeSuccessfulPackageName(String packageName) async {
-    await _preferencesService.setString('android_successful_package', packageName);
+    await _preferencesService.setString(
+      'android_successful_package',
+      packageName,
+    );
     LoggingService.info('Stored successful Android package name: $packageName');
   }
 

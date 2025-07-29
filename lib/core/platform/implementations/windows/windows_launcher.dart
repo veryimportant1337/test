@@ -21,7 +21,9 @@ class WindowsLauncher implements IPlatformLauncher {
 
     try {
       final channel = await _preferencesService.getReleaseChannel();
-      String? edenExecutable = await _preferencesService.getEdenExecutablePath(channel);
+      String? edenExecutable = await _preferencesService.getEdenExecutablePath(
+        channel,
+      );
 
       // If no stored executable path, try to find it
       if (edenExecutable == null || !await File(edenExecutable).exists()) {
@@ -41,11 +43,7 @@ class WindowsLauncher implements IPlatformLauncher {
       LoggingService.info('Launching Eden executable: $edenExecutable');
 
       // Launch Eden as a detached process
-      await Process.start(
-        edenExecutable,
-        [],
-        mode: ProcessStartMode.detached,
-      );
+      await Process.start(edenExecutable, [], mode: ProcessStartMode.detached);
 
       LoggingService.info('Eden launched successfully');
     } catch (e) {
@@ -99,7 +97,8 @@ class WindowsLauncher implements IPlatformLauncher {
       LoggingService.info('Creating shortcut at: $shortcutPath');
 
       // Create PowerShell script to create shortcut with auto-launch and channel arguments
-      final powershellScript = '''
+      final powershellScript =
+          '''
 \$WshShell = New-Object -comObject WScript.Shell
 \$Shortcut = \$WshShell.CreateShortcut("$shortcutPath")
 \$Shortcut.TargetPath = "$updaterExecutable"
@@ -128,10 +127,7 @@ class WindowsLauncher implements IPlatformLauncher {
       if (e is LauncherException) {
         rethrow;
       }
-      throw LauncherException(
-        'Error creating Windows shortcut',
-        e.toString(),
-      );
+      throw LauncherException('Error creating Windows shortcut', e.toString());
     }
   }
 
@@ -144,9 +140,12 @@ class WindowsLauncher implements IPlatformLauncher {
     try {
       // First, try the expected path
       final fileHandler = WindowsFileHandler();
-      final expectedPath = fileHandler.getEdenExecutablePath(installPath, channel);
+      final expectedPath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
       LoggingService.info('Checking expected path: $expectedPath');
-      
+
       if (await File(expectedPath).exists()) {
         LoggingService.info('Found Eden executable at expected path');
         // Store the path for future use
@@ -155,11 +154,15 @@ class WindowsLauncher implements IPlatformLauncher {
       }
 
       // If not found at expected path, search the installation directory
-      LoggingService.info('Searching installation directory for Eden executable');
+      LoggingService.info(
+        'Searching installation directory for Eden executable',
+      );
       final installDir = Directory(installPath);
-      
+
       if (!await installDir.exists()) {
-        LoggingService.warning('Installation directory does not exist: $installPath');
+        LoggingService.warning(
+          'Installation directory does not exist: $installPath',
+        );
         return null;
       }
 
@@ -170,13 +173,18 @@ class WindowsLauncher implements IPlatformLauncher {
           if (fileHandler.isEdenExecutable(fileName)) {
             LoggingService.info('Found Eden executable: ${entity.path}');
             // Store the path for future use
-            await _preferencesService.setEdenExecutablePath(channel, entity.path);
+            await _preferencesService.setEdenExecutablePath(
+              channel,
+              entity.path,
+            );
             return entity.path;
           }
         }
       }
 
-      LoggingService.warning('Eden executable not found in installation directory');
+      LoggingService.warning(
+        'Eden executable not found in installation directory',
+      );
       return null;
     } catch (e) {
       LoggingService.error('Error finding Eden executable on Windows', e);

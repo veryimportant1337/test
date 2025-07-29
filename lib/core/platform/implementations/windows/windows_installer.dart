@@ -23,7 +23,10 @@ class WindowsInstaller implements IPlatformInstaller {
     this._extractionService,
     this._installationService,
     this._preferencesService,
-  ) : _platformLauncher = WindowsLauncher(_preferencesService, _installationService);
+  ) : _platformLauncher = WindowsLauncher(
+        _preferencesService,
+        _installationService,
+      );
 
   @override
   Future<bool> canHandle(String filePath) async {
@@ -34,15 +37,15 @@ class WindowsInstaller implements IPlatformInstaller {
       // Windows installer handles archive files (zip, 7z, tar.gz, etc.)
       // but not APK or AppImage files
       final extension = path.extension(filePath).toLowerCase();
-      
+
       // Supported archive formats for Windows
       final supportedExtensions = ['.zip', '.7z', '.tar', '.gz', '.rar'];
-      
+
       // Check if it's a supported archive format
       if (supportedExtensions.any((ext) => extension.endsWith(ext))) {
         return true;
       }
-      
+
       // Check for compound extensions like .tar.gz
       final fileName = path.basename(filePath).toLowerCase();
       if (fileName.endsWith('.tar.gz') || fileName.endsWith('.tar.bz2')) {
@@ -56,7 +59,10 @@ class WindowsInstaller implements IPlatformInstaller {
 
       return false;
     } catch (e) {
-      LoggingService.error('Error checking if Windows installer can handle file', e);
+      LoggingService.error(
+        'Error checking if Windows installer can handle file',
+        e,
+      );
       return false;
     }
   }
@@ -173,36 +179,61 @@ class WindowsInstaller implements IPlatformInstaller {
           await extractTempDir.delete(recursive: true);
           LoggingService.info('Cleaned up extraction temp directory');
         } catch (e) {
-          LoggingService.warning('Failed to clean up extraction temp directory', e);
+          LoggingService.warning(
+            'Failed to clean up extraction temp directory',
+            e,
+          );
         }
       }
     }
   }
 
   @override
-  Future<void> postInstallSetup(String installPath, UpdateInfo updateInfo) async {
+  Future<void> postInstallSetup(
+    String installPath,
+    UpdateInfo updateInfo,
+  ) async {
     LoggingService.info('Performing Windows post-install setup');
-    
+
     try {
       // Find and verify the Eden executable exists
       final channel = await _preferencesService.getReleaseChannel();
       final fileHandler = WindowsFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
         // Store the executable path for future launches
-        await _preferencesService.setEdenExecutablePath(channel, expectedExecutablePath);
-        LoggingService.info('Stored Eden executable path: $expectedExecutablePath');
+        await _preferencesService.setEdenExecutablePath(
+          channel,
+          expectedExecutablePath,
+        );
+        LoggingService.info(
+          'Stored Eden executable path: $expectedExecutablePath',
+        );
       } else {
-        LoggingService.warning('Eden executable not found at expected path: $expectedExecutablePath');
-        
+        LoggingService.warning(
+          'Eden executable not found at expected path: $expectedExecutablePath',
+        );
+
         // Try to find the executable in the installation directory
-        final foundExecutable = await _findEdenExecutableInDirectory(installPath);
+        final foundExecutable = await _findEdenExecutableInDirectory(
+          installPath,
+        );
         if (foundExecutable != null) {
-          await _preferencesService.setEdenExecutablePath(channel, foundExecutable);
-          LoggingService.info('Found and stored Eden executable path: $foundExecutable');
+          await _preferencesService.setEdenExecutablePath(
+            channel,
+            foundExecutable,
+          );
+          LoggingService.info(
+            'Found and stored Eden executable path: $foundExecutable',
+          );
         } else {
-          LoggingService.error('Could not find Eden executable in installation directory');
+          LoggingService.error(
+            'Could not find Eden executable in installation directory',
+          );
         }
       }
     } catch (e) {
@@ -212,7 +243,10 @@ class WindowsInstaller implements IPlatformInstaller {
   }
 
   /// Move extracted files from temp directory to install directory
-  Future<void> _moveExtractedFiles(String extractPath, String installPath) async {
+  Future<void> _moveExtractedFiles(
+    String extractPath,
+    String installPath,
+  ) async {
     final extractDir = Directory(extractPath);
 
     await for (final entity in extractDir.list()) {
@@ -230,7 +264,7 @@ class WindowsInstaller implements IPlatformInstaller {
   Future<String?> _findEdenExecutableInDirectory(String installPath) async {
     try {
       final installDir = Directory(installPath);
-      
+
       await for (final entity in installDir.list(recursive: true)) {
         if (entity is File) {
           final fileName = path.basename(entity.path);
@@ -240,7 +274,7 @@ class WindowsInstaller implements IPlatformInstaller {
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.error('Error searching for Eden executable', e);

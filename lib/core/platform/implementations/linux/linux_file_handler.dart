@@ -8,24 +8,24 @@ class LinuxFileHandler implements IPlatformFileHandler {
   @override
   bool isEdenExecutable(String filename) {
     final name = filename.toLowerCase();
-    
+
     // On Linux, Eden executables can have various names
     // Check for exact matches first
     if (name == 'eden' || name == 'eden-stable' || name == 'eden-nightly') {
       return true;
     }
-    
+
     // Check for files that contain 'eden' but don't have extensions
     // (Linux executables typically don't have extensions)
     if (name.contains('eden') && !name.contains('.')) {
       return true;
     }
-    
+
     // Check for AppImage files
     if (name.contains('eden') && name.endsWith('.appimage')) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -44,23 +44,27 @@ class LinuxFileHandler implements IPlatformFileHandler {
   @override
   Future<void> makeExecutable(String filePath) async {
     LoggingService.info('Making file executable on Linux: $filePath');
-    
+
     try {
       final file = File(filePath);
       if (!await file.exists()) {
-        LoggingService.warning('File does not exist, cannot make executable: $filePath');
+        LoggingService.warning(
+          'File does not exist, cannot make executable: $filePath',
+        );
         return;
       }
 
       // Use chmod to add executable permissions
       final chmodResult = await Process.run('chmod', ['+x', filePath]);
       if (chmodResult.exitCode != 0) {
-        LoggingService.error('Failed to set executable permissions: ${chmodResult.stderr}');
+        LoggingService.error(
+          'Failed to set executable permissions: ${chmodResult.stderr}',
+        );
         throw Exception('chmod command failed: ${chmodResult.stderr}');
       }
-      
+
       LoggingService.info('File is now executable: $filePath');
-      
+
       // Verify the permissions were set correctly
       await _verifyExecutablePermissions(filePath);
     } catch (e) {
@@ -71,11 +75,13 @@ class LinuxFileHandler implements IPlatformFileHandler {
 
   @override
   Future<bool> containsEdenFiles(String folderPath) async {
-    LoggingService.info('Checking if Linux folder contains Eden files: $folderPath');
-    
+    LoggingService.info(
+      'Checking if Linux folder contains Eden files: $folderPath',
+    );
+
     try {
       final dir = Directory(folderPath);
-      
+
       if (!await dir.exists()) {
         LoggingService.warning('Directory does not exist: $folderPath');
         return false;
@@ -87,7 +93,9 @@ class LinuxFileHandler implements IPlatformFileHandler {
 
           // Check for the main executable
           if (isEdenExecutable(filename)) {
-            LoggingService.info('Found Eden executable in folder: ${entity.path}');
+            LoggingService.info(
+              'Found Eden executable in folder: ${entity.path}',
+            );
             return true;
           }
 
@@ -98,20 +106,26 @@ class LinuxFileHandler implements IPlatformFileHandler {
                 filename.contains('imageformats') ||
                 filename.contains('bearer') ||
                 filename.endsWith('.so') && filename.contains('qt')) {
-              LoggingService.info('Found Eden-related file in folder: ${entity.path}');
+              LoggingService.info(
+                'Found Eden-related file in folder: ${entity.path}',
+              );
               return true;
             }
           }
 
           // Check for Qt-related shared libraries which are common in Eden distributions
           if (filename.startsWith('libqt') && filename.endsWith('.so')) {
-            LoggingService.info('Found Qt shared library in folder (likely Eden): ${entity.path}');
+            LoggingService.info(
+              'Found Qt shared library in folder (likely Eden): ${entity.path}',
+            );
             return true;
           }
-          
+
           // Check for other common Linux executable patterns
           if (filename.startsWith('qt') && filename.endsWith('.so')) {
-            LoggingService.info('Found Qt library in folder (likely Eden): ${entity.path}');
+            LoggingService.info(
+              'Found Qt library in folder (likely Eden): ${entity.path}',
+            );
             return true;
           }
         }
@@ -120,7 +134,10 @@ class LinuxFileHandler implements IPlatformFileHandler {
       LoggingService.info('No Eden files found in folder: $folderPath');
       return false;
     } catch (e) {
-      LoggingService.error('Error checking if Linux folder contains Eden files', e);
+      LoggingService.error(
+        'Error checking if Linux folder contains Eden files',
+        e,
+      );
       return false;
     }
   }
@@ -133,20 +150,27 @@ class LinuxFileHandler implements IPlatformFileHandler {
       if (statResult.exitCode == 0) {
         final permissions = statResult.stdout.toString().trim();
         LoggingService.info('File permissions after chmod: $permissions');
-        
+
         // Check if the file has execute permissions (should contain 1, 3, 5, or 7 in any position)
-        final hasExecutePermission = permissions.contains('1') || 
-                                   permissions.contains('3') || 
-                                   permissions.contains('5') || 
-                                   permissions.contains('7');
-        
+        final hasExecutePermission =
+            permissions.contains('1') ||
+            permissions.contains('3') ||
+            permissions.contains('5') ||
+            permissions.contains('7');
+
         if (!hasExecutePermission) {
-          LoggingService.warning('File may not have proper execute permissions: $permissions');
+          LoggingService.warning(
+            'File may not have proper execute permissions: $permissions',
+          );
         } else {
-          LoggingService.info('File has proper execute permissions: $permissions');
+          LoggingService.info(
+            'File has proper execute permissions: $permissions',
+          );
         }
       } else {
-        LoggingService.warning('Could not verify file permissions: ${statResult.stderr}');
+        LoggingService.warning(
+          'Could not verify file permissions: ${statResult.stderr}',
+        );
       }
     } catch (e) {
       LoggingService.warning('Error verifying executable permissions', e);
@@ -166,14 +190,14 @@ class LinuxFileHandler implements IPlatformFileHandler {
       final statResult = await Process.run('stat', ['-c', '%a', filePath]);
       if (statResult.exitCode == 0) {
         final permissions = statResult.stdout.toString().trim();
-        
+
         // Check if any position has execute permission (1, 3, 5, or 7)
-        return permissions.contains('1') || 
-               permissions.contains('3') || 
-               permissions.contains('5') || 
-               permissions.contains('7');
+        return permissions.contains('1') ||
+            permissions.contains('3') ||
+            permissions.contains('5') ||
+            permissions.contains('7');
       }
-      
+
       return false;
     } catch (e) {
       LoggingService.error('Error checking if file is executable', e);
@@ -198,14 +222,18 @@ class LinuxFileHandler implements IPlatformFileHandler {
   /// Set specific file permissions using chmod
   Future<void> setFilePermissions(String filePath, String permissions) async {
     try {
-      LoggingService.info('Setting file permissions: $filePath -> $permissions');
-      
+      LoggingService.info(
+        'Setting file permissions: $filePath -> $permissions',
+      );
+
       final chmodResult = await Process.run('chmod', [permissions, filePath]);
       if (chmodResult.exitCode != 0) {
-        LoggingService.error('Failed to set file permissions: ${chmodResult.stderr}');
+        LoggingService.error(
+          'Failed to set file permissions: ${chmodResult.stderr}',
+        );
         throw Exception('chmod command failed: ${chmodResult.stderr}');
       }
-      
+
       LoggingService.info('File permissions set successfully: $filePath');
     } catch (e) {
       LoggingService.error('Error setting file permissions', e);

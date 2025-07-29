@@ -24,7 +24,10 @@ class LinuxInstaller implements IPlatformInstaller {
     this._extractionService,
     this._installationService,
     this._preferencesService,
-  ) : _platformLauncher = LinuxLauncher(_preferencesService, _installationService);
+  ) : _platformLauncher = LinuxLauncher(
+        _preferencesService,
+        _installationService,
+      );
 
   @override
   Future<bool> canHandle(String filePath) async {
@@ -36,23 +39,23 @@ class LinuxInstaller implements IPlatformInstaller {
       // but not APK files
       final extension = path.extension(filePath).toLowerCase();
       final fileName = path.basename(filePath).toLowerCase();
-      
+
       // Check for AppImage files
       if (extension == '.appimage' || fileName.contains('appimage')) {
         return true;
       }
-      
+
       // Supported archive formats for Linux
       final supportedExtensions = ['.zip', '.tar', '.gz', '.bz2', '.xz'];
-      
+
       // Check if it's a supported archive format
       if (supportedExtensions.any((ext) => extension.endsWith(ext))) {
         return true;
       }
-      
+
       // Check for compound extensions like .tar.gz, .tar.bz2, .tar.xz
-      if (fileName.endsWith('.tar.gz') || 
-          fileName.endsWith('.tar.bz2') || 
+      if (fileName.endsWith('.tar.gz') ||
+          fileName.endsWith('.tar.bz2') ||
           fileName.endsWith('.tar.xz')) {
         return true;
       }
@@ -64,7 +67,10 @@ class LinuxInstaller implements IPlatformInstaller {
 
       return false;
     } catch (e) {
-      LoggingService.error('Error checking if Linux installer can handle file', e);
+      LoggingService.error(
+        'Error checking if Linux installer can handle file',
+        e,
+      );
       return false;
     }
   }
@@ -124,35 +130,57 @@ class LinuxInstaller implements IPlatformInstaller {
   }
 
   @override
-  Future<void> postInstallSetup(String installPath, UpdateInfo updateInfo) async {
+  Future<void> postInstallSetup(
+    String installPath,
+    UpdateInfo updateInfo,
+  ) async {
     LoggingService.info('Performing Linux post-install setup');
-    
+
     try {
       // Find and verify the Eden executable exists
       final channel = await _preferencesService.getReleaseChannel();
       final fileHandler = LinuxFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
         // Store the executable path for future launches
-        await _preferencesService.setEdenExecutablePath(channel, expectedExecutablePath);
-        LoggingService.info('Stored Eden executable path: $expectedExecutablePath');
-        
+        await _preferencesService.setEdenExecutablePath(
+          channel,
+          expectedExecutablePath,
+        );
+        LoggingService.info(
+          'Stored Eden executable path: $expectedExecutablePath',
+        );
+
         // Ensure the executable has proper permissions
         await _makeExecutable(expectedExecutablePath);
       } else {
-        LoggingService.warning('Eden executable not found at expected path: $expectedExecutablePath');
-        
+        LoggingService.warning(
+          'Eden executable not found at expected path: $expectedExecutablePath',
+        );
+
         // Try to find the executable in the installation directory
-        final foundExecutable = await _findEdenExecutableInDirectory(installPath);
+        final foundExecutable = await _findEdenExecutableInDirectory(
+          installPath,
+        );
         if (foundExecutable != null) {
-          await _preferencesService.setEdenExecutablePath(channel, foundExecutable);
-          LoggingService.info('Found and stored Eden executable path: $foundExecutable');
-          
+          await _preferencesService.setEdenExecutablePath(
+            channel,
+            foundExecutable,
+          );
+          LoggingService.info(
+            'Found and stored Eden executable path: $foundExecutable',
+          );
+
           // Ensure the executable has proper permissions
           await _makeExecutable(foundExecutable);
         } else {
-          LoggingService.error('Could not find Eden executable in installation directory');
+          LoggingService.error(
+            'Could not find Eden executable in installation directory',
+          );
         }
       }
     } catch (e) {
@@ -198,7 +226,9 @@ class LinuxInstaller implements IPlatformInstaller {
         ? 'eden-nightly'
         : 'eden-stable';
     final targetPath = path.join(installPath, targetFileName);
-    LoggingService.info('Target AppImage path: $targetPath (channel: $channel)');
+    LoggingService.info(
+      'Target AppImage path: $targetPath (channel: $channel)',
+    );
 
     final targetFile = File(targetPath);
     if (await targetFile.exists()) {
@@ -220,13 +250,16 @@ class LinuxInstaller implements IPlatformInstaller {
     // Update version info and store executable path
     await _preferencesService.setCurrentVersion(channel, updateInfo.version);
     await _preferencesService.setEdenExecutablePath(channel, targetPath);
-    LoggingService.info('Updated version info for channel $channel to ${updateInfo.version}');
+    LoggingService.info(
+      'Updated version info for channel $channel to ${updateInfo.version}',
+    );
 
     // Create user folder for portable mode in the channel-specific folder
     if (portableMode) {
       onStatusUpdate('Setting up portable mode...');
       LoggingService.info('Setting up portable mode...');
-      final channelInstallPath = await _installationService.getChannelInstallPath();
+      final channelInstallPath = await _installationService
+          .getChannelInstallPath();
       final userPath = path.join(channelInstallPath, 'user');
       await Directory(userPath).create(recursive: true);
       LoggingService.info('Portable mode user directory created: $userPath');
@@ -312,13 +345,16 @@ class LinuxInstaller implements IPlatformInstaller {
       // Update version info
       final channel = await _preferencesService.getReleaseChannel();
       await _preferencesService.setCurrentVersion(channel, updateInfo.version);
-      LoggingService.info('Updated version info for channel $channel to ${updateInfo.version}');
+      LoggingService.info(
+        'Updated version info for channel $channel to ${updateInfo.version}',
+      );
 
       // Create user folder for portable mode in the channel-specific folder
       if (portableMode) {
         onStatusUpdate('Setting up portable mode...');
         LoggingService.info('Setting up portable mode...');
-        final channelInstallPath = await _installationService.getChannelInstallPath();
+        final channelInstallPath = await _installationService
+            .getChannelInstallPath();
         final userPath = path.join(channelInstallPath, 'user');
         await Directory(userPath).create(recursive: true);
         LoggingService.info('Portable mode user directory created: $userPath');
@@ -345,7 +381,10 @@ class LinuxInstaller implements IPlatformInstaller {
           await extractTempDir.delete(recursive: true);
           LoggingService.info('Cleaned up extraction temp directory');
         } catch (e) {
-          LoggingService.warning('Failed to clean up extraction temp directory', e);
+          LoggingService.warning(
+            'Failed to clean up extraction temp directory',
+            e,
+          );
         }
       }
     }
@@ -378,7 +417,10 @@ class LinuxInstaller implements IPlatformInstaller {
   }
 
   /// Move extracted files from temp directory to install directory
-  Future<void> _moveExtractedFiles(String extractPath, String installPath) async {
+  Future<void> _moveExtractedFiles(
+    String extractPath,
+    String installPath,
+  ) async {
     final extractDir = Directory(extractPath);
 
     await for (final entity in extractDir.list()) {
@@ -398,7 +440,9 @@ class LinuxInstaller implements IPlatformInstaller {
       LoggingService.info('Making file executable: $filePath');
       final chmodResult = await Process.run('chmod', ['+x', filePath]);
       if (chmodResult.exitCode != 0) {
-        LoggingService.warning('Failed to set executable permissions: ${chmodResult.stderr}');
+        LoggingService.warning(
+          'Failed to set executable permissions: ${chmodResult.stderr}',
+        );
         throw UpdateException(
           'Failed to set executable permissions',
           'chmod command failed: ${chmodResult.stderr}',
@@ -408,7 +452,10 @@ class LinuxInstaller implements IPlatformInstaller {
     } catch (e) {
       LoggingService.error('Error making file executable', e);
       if (e is UpdateException) rethrow;
-      throw UpdateException('Failed to set executable permissions', e.toString());
+      throw UpdateException(
+        'Failed to set executable permissions',
+        e.toString(),
+      );
     }
   }
 
@@ -416,7 +463,7 @@ class LinuxInstaller implements IPlatformInstaller {
   Future<void> _makeExecutablesInDirectory(String directoryPath) async {
     try {
       final dir = Directory(directoryPath);
-      
+
       await for (final entity in dir.list(recursive: true)) {
         if (entity is File) {
           final fileName = path.basename(entity.path);
@@ -436,7 +483,7 @@ class LinuxInstaller implements IPlatformInstaller {
   Future<String?> _findEdenExecutableInDirectory(String installPath) async {
     try {
       final installDir = Directory(installPath);
-      
+
       await for (final entity in installDir.list(recursive: true)) {
         if (entity is File) {
           final fileName = path.basename(entity.path);
@@ -446,7 +493,7 @@ class LinuxInstaller implements IPlatformInstaller {
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.error('Error searching for Eden executable', e);

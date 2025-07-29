@@ -8,10 +8,12 @@ A cross-platform GUI updater for the Eden emulator. Keep your Eden installation 
 ## Features
 
 - Automatic update checking from GitHub releases
-- Cross-platform support (Windows, Linux, Android)
+- Cross-platform support (Windows, Linux, Android) with extensible platform abstraction
 - Support for both stable and nightly channels
-- Direct Eden launching
+- Direct Eden launching with platform-specific optimizations
 - Modern dark theme interface
+- Modular architecture with clean separation of concerns
+- Platform-agnostic core services with platform-specific implementations
 
 ## Download
 
@@ -63,7 +65,30 @@ flutter run -d windows    # Run on Windows
 flutter run -d linux      # Run on Linux
 flutter run -d android    # Run on Android
 flutter analyze           # Check code
+flutter test               # Run tests
 ```
+
+### Architecture
+
+Eden Updater uses a modular architecture with platform abstraction:
+
+- **Core Services**: Platform-agnostic business logic
+- **Platform Abstraction Layer**: Clean separation of platform-specific code
+- **UI Layer**: Responsive widgets with state management
+- **Service Locator**: Dependency injection for testability
+
+See [Architecture Documentation](.kiro/steering/ARCHITECTURE.md) for detailed information.
+
+### Adding New Platforms
+
+The platform abstraction layer makes it easy to add support for new platforms like macOS:
+
+1. Implement the four core interfaces (`IPlatformInstaller`, `IPlatformLauncher`, `IPlatformFileHandler`, `IPlatformVersionDetector`)
+2. Add platform configuration to `PlatformConfig`
+3. Update `PlatformFactory` detection and creation methods
+4. Add platform-specific tests
+
+See [Platform Abstraction Guide](lib/core/platform/README.md) for detailed instructions.
 
 ## License
 

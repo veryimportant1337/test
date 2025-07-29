@@ -6,6 +6,7 @@ import '../core/services/logging_service.dart';
 import '../core/platform/platform_factory.dart';
 import '../core/platform/interfaces/i_platform_installer.dart';
 import '../core/platform/interfaces/i_platform_version_detector.dart';
+import '../core/platform/interfaces/i_platform_file_handler.dart';
 import '../models/update_info.dart';
 import 'network/github_api_service.dart';
 import 'storage/preferences_service.dart';
@@ -33,9 +34,12 @@ class UpdateService {
       _downloadService = DownloadService(),
       _platformFileHandler = PlatformFactory.createFileHandler(),
       _launcherService = LauncherService(
+        PreferencesService(),
+        InstallationService(
           PreferencesService(),
-          InstallationService(PreferencesService(), PlatformFactory.createFileHandler()),
+          PlatformFactory.createFileHandler(),
         ),
+      ),
       _platformInstaller = PlatformFactory.createInstaller(),
       _versionDetector = PlatformFactory.createVersionDetector();
 
@@ -47,16 +51,14 @@ class UpdateService {
     this._launcherService,
     this._platformInstaller,
     this._versionDetector,
-  );
+  ) : _platformFileHandler = PlatformFactory.createFileHandler();
 
   // Channel management
   Future<String> getReleaseChannel() async {
     final channel = await _preferencesService.getReleaseChannel();
 
-    // On Android, force stable channel if nightly is not supported
-    if (Platform.isAndroid &&
-        channel == AppConstants.nightlyChannel &&
-        !AppConstants.androidSupportsNightly) {
+    // Check if channel is supported on current platform
+    if (!PlatformFactory.isChannelSupported(channel)) {
       await setReleaseChannel(AppConstants.stableChannel);
       return AppConstants.stableChannel;
     }
@@ -65,10 +67,8 @@ class UpdateService {
   }
 
   Future<void> setReleaseChannel(String channel) async {
-    // On Android, prevent setting nightly channel if not supported
-    if (Platform.isAndroid &&
-        channel == AppConstants.nightlyChannel &&
-        !AppConstants.androidSupportsNightly) {
+    // Check if channel is supported on current platform
+    if (!PlatformFactory.isChannelSupported(channel)) {
       return; // Ignore the request
     }
 
@@ -117,7 +117,8 @@ class UpdateService {
     LoggingService.info('Starting update download and installation');
     LoggingService.info('Update version: ${updateInfo.version}');
     LoggingService.info('Download URL: ${updateInfo.downloadUrl}');
-    LoggingService.info('Platform: ${Platform.operatingSystem}');
+    final platformInfo = PlatformFactory.getPlatformInfo();
+    LoggingService.info('Platform: ${platformInfo['platformName']}');
     LoggingService.info('Create shortcuts: $createShortcuts');
     LoggingService.info('Portable mode: $portableMode');
 
@@ -143,8 +144,10 @@ class UpdateService {
 
       // Check if the platform installer can handle this file
       if (await _platformInstaller.canHandle(downloadedFilePath)) {
-        LoggingService.info('Platform installer can handle file, proceeding with installation');
-        
+        LoggingService.info(
+          'Platform installer can handle file, proceeding with installation',
+        );
+
         // Use platform-specific installer
         await _platformInstaller.install(
           downloadedFilePath,
@@ -165,10 +168,13 @@ class UpdateService {
         onProgress(1.0);
         onStatusUpdate('Installation complete!');
       } else {
-        LoggingService.error('Platform installer cannot handle file: $downloadedFilePath');
+        LoggingService.error(
+          'Platform installer cannot handle file: $downloadedFilePath',
+        );
+        final platformInfo = PlatformFactory.getPlatformInfo();
         throw UpdateException(
           'Unsupported file type for this platform',
-          'The downloaded file cannot be installed on ${Platform.operatingSystem}',
+          'The downloaded file cannot be installed on ${platformInfo['platformName']}',
         );
       }
     } catch (e) {
@@ -226,7 +232,10 @@ class UpdateService {
 
   /// Get install path
   Future<String> getInstallPath() async {
-    final installationService = InstallationService(_preferencesService, _platformFileHandler);
+    final installationService = InstallationService(
+      _preferencesService,
+      _platformFileHandler,
+    );
     return await installationService.getInstallPath();
   }
 

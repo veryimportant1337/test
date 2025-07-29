@@ -96,4 +96,10 @@ class PreferencesService {
     final prefs = await _preferences;
     return prefs.getString(key);
   }
+
+  /// Generic method to remove a value (for Android metadata and other uses)
+  Future<void> remove(String key) async {
+    final prefs = await _preferences;
+    await prefs.remove(key);
+  }
 }

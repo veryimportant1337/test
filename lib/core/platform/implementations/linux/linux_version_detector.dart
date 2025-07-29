@@ -21,17 +21,23 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
 
     try {
       // Method 1: Check stored version info in preferences
-      final versionString = await _preferencesService.getCurrentVersion(channel);
-      
+      final versionString = await _preferencesService.getCurrentVersion(
+        channel,
+      );
+
       if (versionString != null) {
         LoggingService.info('Found stored version: $versionString');
-        
+
         // Verify the executable still exists
-        final storedExecutablePath = await _preferencesService.getEdenExecutablePath(channel);
-        
-        if (storedExecutablePath != null && await File(storedExecutablePath).exists()) {
-          LoggingService.info('Executable exists at stored path: $storedExecutablePath');
-          
+        final storedExecutablePath = await _preferencesService
+            .getEdenExecutablePath(channel);
+
+        if (storedExecutablePath != null &&
+            await File(storedExecutablePath).exists()) {
+          LoggingService.info(
+            'Executable exists at stored path: $storedExecutablePath',
+          );
+
           return UpdateInfo(
             version: versionString,
             downloadUrl: '',
@@ -41,7 +47,9 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
             releaseUrl: '',
           );
         } else {
-          LoggingService.warning('Stored executable path is invalid, clearing version info');
+          LoggingService.warning(
+            'Stored executable path is invalid, clearing version info',
+          );
           await clearVersionInfo(channel);
         }
       }
@@ -49,26 +57,35 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
       // Method 2: Check if Eden is actually installed by looking for executable
       final installPath = await _installationService.getInstallPath();
       final fileHandler = LinuxFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
         LoggingService.info('Found Eden executable but no version info stored');
-        
+
         // Try to read version from a version file if it exists
-        final versionFromFile = await _readVersionFromFile(installPath, channel);
+        final versionFromFile = await _readVersionFromFile(
+          installPath,
+          channel,
+        );
         if (versionFromFile != null) {
           LoggingService.info('Found version from file: $versionFromFile');
-          
+
           // Store this version for future reference
-          await storeVersionInfo(UpdateInfo(
-            version: versionFromFile,
-            downloadUrl: '',
-            releaseNotes: '',
-            releaseDate: DateTime.now(),
-            fileSize: 0,
-            releaseUrl: '',
-          ), channel);
-          
+          await storeVersionInfo(
+            UpdateInfo(
+              version: versionFromFile,
+              downloadUrl: '',
+              releaseNotes: '',
+              releaseDate: DateTime.now(),
+              fileSize: 0,
+              releaseUrl: '',
+            ),
+            channel,
+          );
+
           return UpdateInfo(
             version: versionFromFile,
             downloadUrl: '',
@@ -78,13 +95,14 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
             releaseUrl: '',
           );
         }
-        
+
         // Eden is installed but we don't have version info
         // Return a generic "installed" status
         return UpdateInfo(
           version: 'Unknown version',
           downloadUrl: '',
-          releaseNotes: 'Eden is installed but version information is not available',
+          releaseNotes:
+              'Eden is installed but version information is not available',
           releaseDate: DateTime.now(),
           fileSize: 0,
           releaseUrl: '',
@@ -92,7 +110,10 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
       }
 
       // Method 3: Check for AppImage files in the installation directory
-      final appImageVersion = await _detectAppImageVersion(installPath, channel);
+      final appImageVersion = await _detectAppImageVersion(
+        installPath,
+        channel,
+      );
       if (appImageVersion != null) {
         LoggingService.info('Detected AppImage version: $appImageVersion');
         return UpdateInfo(
@@ -135,23 +156,38 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
     try {
       // Store the version string in preferences
       await _preferencesService.setCurrentVersion(channel, updateInfo.version);
-      
+
       // Try to find and store the executable path
       final installPath = await _installationService.getInstallPath();
       final fileHandler = LinuxFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
-        await _preferencesService.setEdenExecutablePath(channel, expectedExecutablePath);
+        await _preferencesService.setEdenExecutablePath(
+          channel,
+          expectedExecutablePath,
+        );
         LoggingService.info('Stored executable path: $expectedExecutablePath');
       } else {
-        LoggingService.warning('Expected executable not found at: $expectedExecutablePath');
-        
+        LoggingService.warning(
+          'Expected executable not found at: $expectedExecutablePath',
+        );
+
         // Try to find the executable in the installation directory
-        final foundExecutable = await _findEdenExecutableInDirectory(installPath);
+        final foundExecutable = await _findEdenExecutableInDirectory(
+          installPath,
+        );
         if (foundExecutable != null) {
-          await _preferencesService.setEdenExecutablePath(channel, foundExecutable);
-          LoggingService.info('Found and stored executable path: $foundExecutable');
+          await _preferencesService.setEdenExecutablePath(
+            channel,
+            foundExecutable,
+          );
+          LoggingService.info(
+            'Found and stored executable path: $foundExecutable',
+          );
         }
       }
 
@@ -172,11 +208,11 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
     try {
       // Clear preferences
       await _preferencesService.clearVersionInfo(channel);
-      
+
       // Remove version file if it exists
       final installPath = await _installationService.getInstallPath();
       await _removeVersionFile(installPath, channel);
-      
+
       LoggingService.info('Linux version info cleared successfully');
     } catch (e) {
       LoggingService.error('Error clearing Linux version info', e);
@@ -185,15 +221,18 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
   }
 
   /// Read version information from a version file
-  Future<String?> _readVersionFromFile(String installPath, String channel) async {
+  Future<String?> _readVersionFromFile(
+    String installPath,
+    String channel,
+  ) async {
     try {
       final versionFilePath = _getVersionFilePath(installPath, channel);
       final versionFile = File(versionFilePath);
-      
+
       if (await versionFile.exists()) {
         final content = await versionFile.readAsString();
         final lines = content.split('\n');
-        
+
         for (final line in lines) {
           if (line.startsWith('version=')) {
             final version = line.substring('version='.length).trim();
@@ -204,7 +243,7 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.warning('Error reading version from file', e);
@@ -213,24 +252,29 @@ class LinuxVersionDetector implements IPlatformVersionDetector {
   }
 
   /// Write version information to a file
-  Future<void> _writeVersionToFile(String installPath, String channel, UpdateInfo updateInfo) async {
+  Future<void> _writeVersionToFile(
+    String installPath,
+    String channel,
+    UpdateInfo updateInfo,
+  ) async {
     try {
       final versionFilePath = _getVersionFilePath(installPath, channel);
       final versionFile = File(versionFilePath);
-      
+
       // Ensure the directory exists
       final versionDir = Directory(path.dirname(versionFilePath));
       if (!await versionDir.exists()) {
         await versionDir.create(recursive: true);
       }
-      
-      final content = '''version=${updateInfo.version}
+
+      final content =
+          '''version=${updateInfo.version}
 channel=$channel
 install_date=${DateTime.now().toIso8601String()}
 download_url=${updateInfo.downloadUrl}
 file_size=${updateInfo.fileSize}
 ''';
-      
+
       await versionFile.writeAsString(content);
       LoggingService.info('Version info written to file: $versionFilePath');
     } catch (e) {
@@ -244,7 +288,7 @@ file_size=${updateInfo.fileSize}
     try {
       final versionFilePath = _getVersionFilePath(installPath, channel);
       final versionFile = File(versionFilePath);
-      
+
       if (await versionFile.exists()) {
         await versionFile.delete();
         LoggingService.info('Version file removed: $versionFilePath');
@@ -261,18 +305,21 @@ file_size=${updateInfo.fileSize}
   }
 
   /// Try to detect version from AppImage filename
-  Future<String?> _detectAppImageVersion(String installPath, String channel) async {
+  Future<String?> _detectAppImageVersion(
+    String installPath,
+    String channel,
+  ) async {
     try {
       final installDir = Directory(installPath);
-      
+
       if (!await installDir.exists()) {
         return null;
       }
-      
+
       await for (final entity in installDir.list()) {
         if (entity is File) {
           final fileName = path.basename(entity.path).toLowerCase();
-          
+
           // Check if it's an AppImage file
           if (fileName.endsWith('.appimage') || fileName.contains('appimage')) {
             // Try to extract version from filename
@@ -281,21 +328,26 @@ file_size=${updateInfo.fileSize}
               r'eden[_-]?v?([0-9]+\.[0-9]+\.[0-9]+[^\.]*)',
               caseSensitive: false,
             ).firstMatch(fileName);
-            
+
             if (versionMatch != null) {
               final version = 'v${versionMatch.group(1)}';
-              LoggingService.info('Detected version from AppImage filename: $version');
-              
+              LoggingService.info(
+                'Detected version from AppImage filename: $version',
+              );
+
               // Store this version for future reference
               await _preferencesService.setCurrentVersion(channel, version);
-              await _preferencesService.setEdenExecutablePath(channel, entity.path);
-              
+              await _preferencesService.setEdenExecutablePath(
+                channel,
+                entity.path,
+              );
+
               return version;
             }
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.warning('Error detecting AppImage version', e);
@@ -307,11 +359,11 @@ file_size=${updateInfo.fileSize}
   Future<String?> _findEdenExecutableInDirectory(String installPath) async {
     try {
       final installDir = Directory(installPath);
-      
+
       if (!await installDir.exists()) {
         return null;
       }
-      
+
       await for (final entity in installDir.list(recursive: true)) {
         if (entity is File) {
           final fileName = path.basename(entity.path);
@@ -321,7 +373,7 @@ file_size=${updateInfo.fileSize}
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.error('Error searching for Eden executable', e);
@@ -335,14 +387,14 @@ file_size=${updateInfo.fileSize}
       final installPath = await _installationService.getInstallPath();
       final versionFilePath = _getVersionFilePath(installPath, channel);
       final versionFile = File(versionFilePath);
-      
+
       if (!await versionFile.exists()) {
         return null;
       }
-      
+
       final content = await versionFile.readAsString();
       final metadata = <String, String>{};
-      
+
       for (final line in content.split('\n')) {
         if (line.contains('=')) {
           final parts = line.split('=');
@@ -351,7 +403,7 @@ file_size=${updateInfo.fileSize}
           }
         }
       }
-      
+
       return metadata;
     } catch (e) {
       LoggingService.error('Error reading installation metadata', e);

@@ -17,21 +17,29 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
 
   @override
   Future<UpdateInfo?> getCurrentVersion(String channel) async {
-    LoggingService.info('Getting current Windows version for channel: $channel');
+    LoggingService.info(
+      'Getting current Windows version for channel: $channel',
+    );
 
     try {
       // Check stored version info in preferences
-      final versionString = await _preferencesService.getCurrentVersion(channel);
-      
+      final versionString = await _preferencesService.getCurrentVersion(
+        channel,
+      );
+
       if (versionString != null) {
         LoggingService.info('Found stored version: $versionString');
-        
+
         // Verify the executable still exists
-        final storedExecutablePath = await _preferencesService.getEdenExecutablePath(channel);
-        
-        if (storedExecutablePath != null && await File(storedExecutablePath).exists()) {
-          LoggingService.info('Executable exists at stored path: $storedExecutablePath');
-          
+        final storedExecutablePath = await _preferencesService
+            .getEdenExecutablePath(channel);
+
+        if (storedExecutablePath != null &&
+            await File(storedExecutablePath).exists()) {
+          LoggingService.info(
+            'Executable exists at stored path: $storedExecutablePath',
+          );
+
           return UpdateInfo(
             version: versionString,
             downloadUrl: '',
@@ -41,7 +49,9 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
             releaseUrl: '',
           );
         } else {
-          LoggingService.warning('Stored executable path is invalid, clearing version info');
+          LoggingService.warning(
+            'Stored executable path is invalid, clearing version info',
+          );
           await clearVersionInfo(channel);
         }
       }
@@ -49,17 +59,21 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
       // If no stored version or executable not found, check if Eden is actually installed
       final installPath = await _installationService.getInstallPath();
       final fileHandler = WindowsFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
         LoggingService.info('Found Eden executable but no version info stored');
-        
+
         // Eden is installed but we don't have version info
         // Return a generic "installed" status
         return UpdateInfo(
           version: 'Unknown version',
           downloadUrl: '',
-          releaseNotes: 'Eden is installed but version information is not available',
+          releaseNotes:
+              'Eden is installed but version information is not available',
           releaseDate: DateTime.now(),
           fileSize: 0,
           releaseUrl: '',
@@ -96,23 +110,38 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
     try {
       // Store the version string
       await _preferencesService.setCurrentVersion(channel, updateInfo.version);
-      
+
       // Try to find and store the executable path
       final installPath = await _installationService.getInstallPath();
       final fileHandler = WindowsFileHandler();
-      final expectedExecutablePath = fileHandler.getEdenExecutablePath(installPath, channel);
-      
+      final expectedExecutablePath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
+
       if (await File(expectedExecutablePath).exists()) {
-        await _preferencesService.setEdenExecutablePath(channel, expectedExecutablePath);
+        await _preferencesService.setEdenExecutablePath(
+          channel,
+          expectedExecutablePath,
+        );
         LoggingService.info('Stored executable path: $expectedExecutablePath');
       } else {
-        LoggingService.warning('Expected executable not found at: $expectedExecutablePath');
-        
+        LoggingService.warning(
+          'Expected executable not found at: $expectedExecutablePath',
+        );
+
         // Try to find the executable in the installation directory
-        final foundExecutable = await _findEdenExecutableInDirectory(installPath);
+        final foundExecutable = await _findEdenExecutableInDirectory(
+          installPath,
+        );
         if (foundExecutable != null) {
-          await _preferencesService.setEdenExecutablePath(channel, foundExecutable);
-          LoggingService.info('Found and stored executable path: $foundExecutable');
+          await _preferencesService.setEdenExecutablePath(
+            channel,
+            foundExecutable,
+          );
+          LoggingService.info(
+            'Found and stored executable path: $foundExecutable',
+          );
         }
       }
 
@@ -140,11 +169,11 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
   Future<String?> _findEdenExecutableInDirectory(String installPath) async {
     try {
       final installDir = Directory(installPath);
-      
+
       if (!await installDir.exists()) {
         return null;
       }
-      
+
       await for (final entity in installDir.list(recursive: true)) {
         if (entity is File) {
           final fileName = path.basename(entity.path);
@@ -154,7 +183,7 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
           }
         }
       }
-      
+
       return null;
     } catch (e) {
       LoggingService.error('Error searching for Eden executable', e);

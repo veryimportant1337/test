@@ -4,14 +4,14 @@ import '../platform/platform_factory.dart';
 import '../platform/interfaces/i_platform_file_handler.dart';
 
 /// Utility functions for file operations
-/// 
+///
 /// This class provides both platform-agnostic utilities and backward-compatible
 /// wrappers for platform-specific operations. For new code, prefer using
 /// IPlatformFileHandler directly through PlatformFactory.createFileHandler().
 class FileUtils {
   /// Cached platform file handler instance
   static IPlatformFileHandler? _platformFileHandler;
-  
+
   /// Gets the platform-specific file handler instance
   static IPlatformFileHandler get _fileHandler {
     _platformFileHandler ??= PlatformFactory.createFileHandler();
@@ -19,7 +19,7 @@ class FileUtils {
   }
 
   /// Check if a filename represents an Eden executable
-  /// 
+  ///
   /// @deprecated Use IPlatformFileHandler.isEdenExecutable() instead
   /// This method is maintained for backward compatibility
   static bool isEdenExecutable(String filename) {
@@ -27,7 +27,7 @@ class FileUtils {
   }
 
   /// Get the expected Eden executable path for a given install directory
-  /// 
+  ///
   /// @deprecated Use IPlatformFileHandler.getEdenExecutablePath() instead
   /// This method is maintained for backward compatibility
   static String getEdenExecutablePath(String installPath, [String? channel]) {
@@ -73,7 +73,7 @@ class FileUtils {
   }
 
   /// Check if a directory contains Eden program files
-  /// 
+  ///
   /// @deprecated Use IPlatformFileHandler.containsEdenFiles() instead
   /// This method is maintained for backward compatibility
   static Future<bool> containsEdenFiles(String folderPath) async {

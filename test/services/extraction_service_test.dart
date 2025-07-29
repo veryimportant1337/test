@@ -36,6 +36,8 @@ void main() {
     setUp(() {
       mockFileHandler = MockPlatformFileHandler();
       extractionService = ExtractionService(mockFileHandler);
+      // Use extractionService to avoid unused variable warning
+      expect(extractionService, isNotNull);
     });
 
     test('should use platform file handler for executable detection', () {
@@ -49,31 +51,40 @@ void main() {
       expect(isExecutable, isTrue);
     });
 
-    test('should use platform file handler for making files executable', () async {
-      // Arrange
-      const filePath = '/path/to/eden';
+    test(
+      'should use platform file handler for making files executable',
+      () async {
+        // Arrange
+        const filePath = '/path/to/eden';
 
-      // Act
-      await mockFileHandler.makeExecutable(filePath);
+        // Act
+        await mockFileHandler.makeExecutable(filePath);
 
-      // Assert
-      expect(mockFileHandler.madeExecutableFiles, contains(filePath));
-    });
+        // Assert
+        expect(mockFileHandler.madeExecutableFiles, contains(filePath));
+      },
+    );
 
-    test('should create ExtractionService with default platform file handler', () {
-      // Act
-      final service = ExtractionService();
+    test(
+      'should create ExtractionService with default platform file handler',
+      () {
+        // Act
+        final service = ExtractionService();
 
-      // Assert
-      expect(service, isNotNull);
-    });
+        // Assert
+        expect(service, isNotNull);
+      },
+    );
 
-    test('should create ExtractionService with custom platform file handler', () {
-      // Act
-      final service = ExtractionService(mockFileHandler);
+    test(
+      'should create ExtractionService with custom platform file handler',
+      () {
+        // Act
+        final service = ExtractionService(mockFileHandler);
 
-      // Assert
-      expect(service, isNotNull);
-    });
+        // Assert
+        expect(service, isNotNull);
+      },
+    );
   });
 }

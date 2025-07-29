@@ -33,24 +33,29 @@ class ServiceLocator {
   static void initialize() {
     final locator = ServiceLocator();
 
-    // Register core services
-    locator.register<PreferencesService>(PreferencesService());
+    // Register core services as singletons
+    final preferencesService = PreferencesService();
+    final fileHandler = PlatformFactory.createFileHandler();
+
+    locator.register<PreferencesService>(preferencesService);
     locator.register<GitHubApiService>(GitHubApiService());
     locator.register<DownloadService>(DownloadService());
-    locator.register<ExtractionService>(
-      ExtractionService(PlatformFactory.createFileHandler()),
-    );
+    locator.register<ExtractionService>(ExtractionService(fileHandler));
 
     // Register services that depend on others
-    final preferencesService = locator.get<PreferencesService>();
-    locator.register<InstallationService>(
-      InstallationService(preferencesService, PlatformFactory.createFileHandler()),
+    final installationService = InstallationService(
+      preferencesService,
+      fileHandler,
     );
+    locator.register<InstallationService>(installationService);
 
-    final installationService = locator.get<InstallationService>();
     locator.register<LauncherService>(
       LauncherService(preferencesService, installationService),
     );
+
+    // Register platform-specific services as singletons
+    final platformInstaller = PlatformFactory.createInstaller();
+    final platformVersionDetector = PlatformFactory.createVersionDetector();
 
     // Register the main update service
     locator.register<UpdateService>(
@@ -59,8 +64,8 @@ class ServiceLocator {
         preferencesService,
         locator.get<DownloadService>(),
         locator.get<LauncherService>(),
-        PlatformFactory.createInstaller(),
-        PlatformFactory.createVersionDetector(),
+        platformInstaller,
+        platformVersionDetector,
       ),
     );
   }

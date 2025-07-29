@@ -9,7 +9,7 @@ import '../../interfaces/i_platform_launcher.dart';
 import '../../exceptions/platform_exceptions.dart';
 
 /// Android-specific launcher implementation
-/// 
+///
 /// Handles launching Eden emulator on Android using package manager
 /// and intent-based launching with fallback mechanisms.
 class AndroidLauncher implements IPlatformLauncher {

@@ -28,7 +28,7 @@ import '../../services/installation/installation_service.dart';
 import '../../services/storage/preferences_service.dart';
 
 /// Factory class for creating platform-specific implementations
-/// 
+///
 /// This factory provides runtime platform detection and creates appropriate
 /// platform-specific implementations for installation, launching, file handling,
 /// and version detection operations.
@@ -41,8 +41,9 @@ class PlatformFactory {
 
   /// Cached platform name to avoid repeated detection
   static String? _cachedPlatformName;
+
   /// Gets the current platform configuration
-  /// 
+  ///
   /// Uses caching to avoid repeated platform detection calls.
   /// Throws [PlatformNotSupportedException] if the current platform is not supported.
   static PlatformConfig getCurrentPlatformConfig() {
@@ -63,7 +64,7 @@ class PlatformFactory {
   /// Creates a platform-specific installer implementation
   static IPlatformInstaller createInstaller() {
     final fileHandler = createFileHandler();
-    
+
     if (Platform.isWindows) {
       return WindowsInstaller(
         ExtractionService(fileHandler),
@@ -81,14 +82,14 @@ class PlatformFactory {
     if (Platform.isAndroid) {
       return AndroidInstaller();
     }
-    
+
     throw PlatformNotSupportedException(_getCurrentPlatformName());
   }
 
   /// Creates a platform-specific launcher implementation
   static IPlatformLauncher createLauncher() {
     final fileHandler = createFileHandler();
-    
+
     if (Platform.isWindows) {
       return WindowsLauncher(
         PreferencesService(),
@@ -107,7 +108,7 @@ class PlatformFactory {
         InstallationService(PreferencesService(), fileHandler),
       );
     }
-    
+
     throw PlatformNotSupportedException(_getCurrentPlatformName());
   }
 
@@ -125,7 +126,7 @@ class PlatformFactory {
     if (Platform.isAndroid) {
       return AndroidLauncher(preferencesService, installationService);
     }
-    
+
     throw PlatformNotSupportedException(_getCurrentPlatformName());
   }
 
@@ -140,14 +141,14 @@ class PlatformFactory {
     if (Platform.isAndroid) {
       return AndroidFileHandler();
     }
-    
+
     throw PlatformNotSupportedException(_getCurrentPlatformName());
   }
 
   /// Creates a platform-specific version detector implementation
   static IPlatformVersionDetector createVersionDetector() {
     final fileHandler = createFileHandler();
-    
+
     if (Platform.isWindows) {
       return WindowsVersionDetector(
         PreferencesService(),
@@ -163,12 +164,12 @@ class PlatformFactory {
     if (Platform.isAndroid) {
       return AndroidVersionDetector(PreferencesService());
     }
-    
+
     throw PlatformNotSupportedException(_getCurrentPlatformName());
   }
 
   /// Gets the current platform name as a string
-  /// 
+  ///
   /// Uses caching to avoid repeated platform detection calls.
   static String _getCurrentPlatformName() {
     _cachedPlatformName ??= _detectPlatformName();
@@ -185,7 +186,7 @@ class PlatformFactory {
   }
 
   /// Checks if the current platform is supported
-  /// 
+  ///
   /// Returns true if the current platform has an implementation available.
   /// Note: macOS is detected but not yet fully supported.
   static bool isCurrentPlatformSupported() {
@@ -203,15 +204,15 @@ class PlatformFactory {
   }
 
   /// Checks if a file extension is supported on the current platform
-  /// 
+  ///
   /// [extension] - File extension to check (with or without leading dot)
-  /// 
+  ///
   /// Returns true if the extension is supported on the current platform.
   static bool isFileExtensionSupported(String extension) {
     try {
       final config = getCurrentPlatformConfig();
-      final normalizedExtension = extension.startsWith('.') 
-          ? extension.toLowerCase() 
+      final normalizedExtension = extension.startsWith('.')
+          ? extension.toLowerCase()
           : '.${extension.toLowerCase()}';
       return config.supportedFileExtensions.contains(normalizedExtension);
     } catch (e) {
@@ -220,9 +221,9 @@ class PlatformFactory {
   }
 
   /// Checks if a release channel is supported on the current platform
-  /// 
+  ///
   /// [channel] - Release channel to check (stable/nightly)
-  /// 
+  ///
   /// Returns true if the channel is supported on the current platform.
   static bool isChannelSupported(String channel) {
     try {
@@ -234,7 +235,7 @@ class PlatformFactory {
   }
 
   /// Gets the supported file extensions for the current platform
-  /// 
+  ///
   /// Returns a list of supported file extensions, or empty list if platform is unsupported.
   static List<String> getSupportedFileExtensions() {
     try {
@@ -246,7 +247,7 @@ class PlatformFactory {
   }
 
   /// Gets the supported release channels for the current platform
-  /// 
+  ///
   /// Returns a list of supported channels, or empty list if platform is unsupported.
   static List<String> getSupportedChannels() {
     try {
@@ -258,13 +259,13 @@ class PlatformFactory {
   }
 
   /// Validates an installation context for the current platform
-  /// 
+  ///
   /// [context] - Installation context to validate
-  /// 
+  ///
   /// Throws appropriate exceptions if the context is invalid for the current platform.
   static void validateInstallationContext(InstallationContext context) {
     final config = getCurrentPlatformConfig();
-    
+
     // Check if the channel is supported
     if (!config.supportedChannels.contains(context.channel.toLowerCase())) {
       throw PlatformOperationException(
@@ -295,7 +296,7 @@ class PlatformFactory {
   }
 
   /// Resets the cached platform detection results
-  /// 
+  ///
   /// This method is primarily for testing purposes to allow platform detection
   /// to be re-run with different conditions.
   static void resetCache() {
@@ -304,7 +305,7 @@ class PlatformFactory {
   }
 
   /// Gets detailed platform information for debugging
-  /// 
+  ///
   /// Returns a map containing detailed information about the current platform.
   static Map<String, dynamic> getPlatformInfo() {
     try {

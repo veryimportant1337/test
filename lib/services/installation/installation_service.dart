@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/utils/file_utils.dart';
 import '../../core/platform/interfaces/i_platform_file_handler.dart';
 import '../../core/platform/platform_factory.dart';
 import '../storage/preferences_service.dart';
@@ -12,8 +11,10 @@ class InstallationService {
   final PreferencesService _preferencesService;
   final IPlatformFileHandler _fileHandler;
 
-  InstallationService(this._preferencesService, [IPlatformFileHandler? fileHandler])
-      : _fileHandler = fileHandler ?? PlatformFactory.createFileHandler();
+  InstallationService(
+    this._preferencesService, [
+    IPlatformFileHandler? fileHandler,
+  ]) : _fileHandler = fileHandler ?? PlatformFactory.createFileHandler();
 
   /// Get the installation path, creating it if necessary
   Future<String> getInstallPath() async {
@@ -91,10 +92,16 @@ class InstallationService {
     // Prioritize GUI versions over command-line versions
     String? selectedExecutable;
 
-    // First priority: exact matches
+    // First priority: use platform-specific preferred executable
+    final preferredExecutable = _fileHandler.getEdenExecutablePath(
+      installPath,
+      null,
+    );
+    final preferredName = path.basename(preferredExecutable).toLowerCase();
+
     for (final exe in foundExecutables) {
       final name = path.basename(exe).toLowerCase();
-      if (name == 'eden.exe') {
+      if (name == preferredName) {
         selectedExecutable = exe;
         break;
       }
@@ -159,10 +166,29 @@ class InstallationService {
         if (entity is File) {
           await entity.copy(targetEntityPath);
         } else if (entity is Directory) {
-          await FileUtils.copyDirectory(entity.path, targetEntityPath);
+          await _copyDirectory(entity.path, targetEntityPath);
         }
       } catch (e) {
         // Continue if we can't copy some files
+      }
+    }
+  }
+
+  /// Copy a directory recursively using platform-agnostic operations
+  Future<void> _copyDirectory(String sourcePath, String targetPath) async {
+    final sourceDir = Directory(sourcePath);
+    final targetDir = Directory(targetPath);
+
+    await targetDir.create(recursive: true);
+
+    await for (final entity in sourceDir.list()) {
+      final name = path.basename(entity.path);
+      final targetEntityPath = path.join(targetPath, name);
+
+      if (entity is File) {
+        await entity.copy(targetEntityPath);
+      } else if (entity is Directory) {
+        await _copyDirectory(entity.path, targetEntityPath);
       }
     }
   }

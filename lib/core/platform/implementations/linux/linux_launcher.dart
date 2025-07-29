@@ -21,7 +21,9 @@ class LinuxLauncher implements IPlatformLauncher {
 
     try {
       final channel = await _preferencesService.getReleaseChannel();
-      String? edenExecutable = await _preferencesService.getEdenExecutablePath(channel);
+      String? edenExecutable = await _preferencesService.getEdenExecutablePath(
+        channel,
+      );
 
       // If no stored executable path, try to find it
       if (edenExecutable == null || !await File(edenExecutable).exists()) {
@@ -44,11 +46,7 @@ class LinuxLauncher implements IPlatformLauncher {
       await _ensureExecutablePermissions(edenExecutable);
 
       // Launch Eden as a detached process
-      await Process.start(
-        edenExecutable,
-        [],
-        mode: ProcessStartMode.detached,
-      );
+      await Process.start(edenExecutable, [], mode: ProcessStartMode.detached);
 
       LoggingService.info('Eden launched successfully');
     } catch (e) {
@@ -69,7 +67,9 @@ class LinuxLauncher implements IPlatformLauncher {
 
     try {
       final channel = await _preferencesService.getReleaseChannel();
-      final edenExecutable = await _preferencesService.getEdenExecutablePath(channel);
+      final edenExecutable = await _preferencesService.getEdenExecutablePath(
+        channel,
+      );
 
       if (edenExecutable == null || !await File(edenExecutable).exists()) {
         throw LauncherException(
@@ -102,14 +102,19 @@ class LinuxLauncher implements IPlatformLauncher {
 
           // Make the desktop file executable
           await Process.run('chmod', ['+x', shortcutFile.path]);
-          
-          LoggingService.info('Desktop shortcut created at: ${shortcutFile.path}');
+
+          LoggingService.info(
+            'Desktop shortcut created at: ${shortcutFile.path}',
+          );
           shortcutCreated = true;
-          
+
           // Only create in the first successful location
           break;
         } catch (e) {
-          LoggingService.warning('Failed to create shortcut at $desktopPath', e);
+          LoggingService.warning(
+            'Failed to create shortcut at $desktopPath',
+            e,
+          );
           // Continue to next path if this one fails
           continue;
         }
@@ -128,10 +133,7 @@ class LinuxLauncher implements IPlatformLauncher {
       if (e is LauncherException) {
         rethrow;
       }
-      throw LauncherException(
-        'Error creating Linux shortcut',
-        e.toString(),
-      );
+      throw LauncherException('Error creating Linux shortcut', e.toString());
     }
   }
 
@@ -144,9 +146,12 @@ class LinuxLauncher implements IPlatformLauncher {
     try {
       // First, try the expected path
       final fileHandler = LinuxFileHandler();
-      final expectedPath = fileHandler.getEdenExecutablePath(installPath, channel);
+      final expectedPath = fileHandler.getEdenExecutablePath(
+        installPath,
+        channel,
+      );
       LoggingService.info('Checking expected path: $expectedPath');
-      
+
       if (await File(expectedPath).exists()) {
         LoggingService.info('Found Eden executable at expected path');
         // Store the path for future use
@@ -155,11 +160,15 @@ class LinuxLauncher implements IPlatformLauncher {
       }
 
       // If not found at expected path, search the installation directory
-      LoggingService.info('Searching installation directory for Eden executable');
+      LoggingService.info(
+        'Searching installation directory for Eden executable',
+      );
       final installDir = Directory(installPath);
-      
+
       if (!await installDir.exists()) {
-        LoggingService.warning('Installation directory does not exist: $installPath');
+        LoggingService.warning(
+          'Installation directory does not exist: $installPath',
+        );
         return null;
       }
 
@@ -170,13 +179,18 @@ class LinuxLauncher implements IPlatformLauncher {
           if (fileHandler.isEdenExecutable(fileName)) {
             LoggingService.info('Found Eden executable: ${entity.path}');
             // Store the path for future use
-            await _preferencesService.setEdenExecutablePath(channel, entity.path);
+            await _preferencesService.setEdenExecutablePath(
+              channel,
+              entity.path,
+            );
             return entity.path;
           }
         }
       }
 
-      LoggingService.warning('Eden executable not found in installation directory');
+      LoggingService.warning(
+        'Eden executable not found in installation directory',
+      );
       return null;
     } catch (e) {
       LoggingService.error('Error finding Eden executable on Linux', e);
@@ -217,7 +231,7 @@ StartupNotify=true
       if (homeDir.isNotEmpty) {
         // User desktop directory
         paths.add(path.join(homeDir, 'Desktop'));
-        
+
         // User applications directory (for app launchers)
         paths.add(path.join(homeDir, '.local', 'share', 'applications'));
       }
@@ -248,7 +262,7 @@ StartupNotify=true
           final dir = Directory(path);
           if (await dir.exists()) {
             // Test if we can write to this directory
-            final testFile = File('${path}/.eden_test');
+            final testFile = File('$path/.eden_test');
             try {
               await testFile.writeAsString('test');
               await testFile.delete();
@@ -273,26 +287,44 @@ StartupNotify=true
   /// Ensure the executable has proper permissions
   Future<void> _ensureExecutablePermissions(String executablePath) async {
     try {
-      LoggingService.info('Ensuring executable permissions for: $executablePath');
-      
+      LoggingService.info(
+        'Ensuring executable permissions for: $executablePath',
+      );
+
       // Check if file is already executable
-      final statResult = await Process.run('stat', ['-c', '%a', executablePath]);
+      final statResult = await Process.run('stat', [
+        '-c',
+        '%a',
+        executablePath,
+      ]);
       if (statResult.exitCode == 0) {
         final permissions = statResult.stdout.toString().trim();
         LoggingService.info('Current permissions: $permissions');
-        
+
         // If permissions don't include execute bit, add it
-        if (!permissions.contains('7') && !permissions.contains('5') && !permissions.contains('1')) {
-          final chmodResult = await Process.run('chmod', ['+x', executablePath]);
+        if (!permissions.contains('7') &&
+            !permissions.contains('5') &&
+            !permissions.contains('1')) {
+          final chmodResult = await Process.run('chmod', [
+            '+x',
+            executablePath,
+          ]);
           if (chmodResult.exitCode != 0) {
-            LoggingService.warning('Failed to set executable permissions: ${chmodResult.stderr}');
+            LoggingService.warning(
+              'Failed to set executable permissions: ${chmodResult.stderr}',
+            );
           } else {
-            LoggingService.info('Added executable permissions to: $executablePath');
+            LoggingService.info(
+              'Added executable permissions to: $executablePath',
+            );
           }
         }
       }
     } catch (e) {
-      LoggingService.warning('Error checking/setting executable permissions', e);
+      LoggingService.warning(
+        'Error checking/setting executable permissions',
+        e,
+      );
       // Don't throw as this is not critical for launching
     }
   }

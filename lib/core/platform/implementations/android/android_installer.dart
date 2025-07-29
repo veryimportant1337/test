@@ -8,7 +8,7 @@ import '../../interfaces/i_platform_installer.dart';
 import '../../exceptions/platform_exceptions.dart';
 
 /// Android-specific installer implementation
-/// 
+///
 /// Handles APK installation using Android Intents and manages
 /// Android-specific file storage and installation metadata.
 class AndroidInstaller implements IPlatformInstaller {
@@ -64,10 +64,15 @@ class AndroidInstaller implements IPlatformInstaller {
   }
 
   @override
-  Future<void> postInstallSetup(String installPath, UpdateInfo updateInfo) async {
+  Future<void> postInstallSetup(
+    String installPath,
+    UpdateInfo updateInfo,
+  ) async {
     // Android APK installation doesn't require post-install setup
     // The Android system handles the installation process
-    LoggingService.info('Android post-install setup completed (no action required)');
+    LoggingService.info(
+      'Android post-install setup completed (no action required)',
+    );
   }
 
   /// Checks if the given file is an APK file
@@ -86,14 +91,13 @@ class AndroidInstaller implements IPlatformInstaller {
 
       // Check file signature (APK files are ZIP files with specific structure)
       final bytes = await file.openRead(0, 4).first;
-      
+
       // ZIP file signature: 0x504B0304 (PK..)
       if (bytes.length >= 4 &&
           bytes[0] == 0x50 &&
           bytes[1] == 0x4B &&
           (bytes[2] == 0x03 || bytes[2] == 0x05 || bytes[2] == 0x07) &&
           (bytes[3] == 0x04 || bytes[3] == 0x06 || bytes[3] == 0x08)) {
-        
         // Additional check: APK files should have AndroidManifest.xml
         // This is a more thorough check but requires ZIP parsing
         // For now, we'll rely on the ZIP signature and extension
@@ -135,8 +139,8 @@ class AndroidInstaller implements IPlatformInstaller {
         data: 'file://$filePath',
         type: 'application/vnd.android.package-archive',
         flags: [
-          Flag.FLAG_ACTIVITY_NEW_TASK,
-          Flag.FLAG_GRANT_READ_URI_PERMISSION,
+          0x10000000, // FLAG_ACTIVITY_NEW_TASK
+          0x00000001, // FLAG_GRANT_READ_URI_PERMISSION
         ],
       );
 

@@ -5,7 +5,7 @@ import '../../../services/logging_service.dart';
 import '../../interfaces/i_platform_file_handler.dart';
 
 /// Android-specific file handler implementation
-/// 
+///
 /// Handles APK detection, Android path handling, and Android-specific
 /// directory operations and file access.
 class AndroidFileHandler implements IPlatformFileHandler {
@@ -13,18 +13,18 @@ class AndroidFileHandler implements IPlatformFileHandler {
   bool isEdenExecutable(String filename) {
     // On Android, Eden comes as an APK file
     final name = filename.toLowerCase();
-    
+
     // Check for APK files that contain "eden" in the name
     if (name.endsWith('.apk') && name.contains('eden')) {
       return true;
     }
-    
+
     // Also check for common Eden APK naming patterns
     return name == 'eden.apk' ||
-           name == 'eden-stable.apk' ||
-           name == 'eden-nightly.apk' ||
-           name == 'eden_emulator.apk' ||
-           name.startsWith('eden') && name.endsWith('.apk');
+        name == 'eden-stable.apk' ||
+        name == 'eden-nightly.apk' ||
+        name == 'eden_emulator.apk' ||
+        name.startsWith('eden') && name.endsWith('.apk');
   }
 
   @override
@@ -40,7 +40,7 @@ class AndroidFileHandler implements IPlatformFileHandler {
           return path.join(installPath, 'eden-stable.apk');
       }
     }
-    
+
     // Default to generic Eden APK name
     return path.join(installPath, 'eden.apk');
   }
@@ -56,7 +56,7 @@ class AndroidFileHandler implements IPlatformFileHandler {
   Future<bool> containsEdenFiles(String folderPath) async {
     try {
       final dir = Directory(folderPath);
-      
+
       if (!await dir.exists()) {
         return false;
       }
@@ -73,7 +73,9 @@ class AndroidFileHandler implements IPlatformFileHandler {
 
           // Check for other characteristic Android files
           if (_isAndroidRelatedFile(filename)) {
-            LoggingService.info('Found Android-related Eden file: ${entity.path}');
+            LoggingService.info(
+              'Found Android-related Eden file: ${entity.path}',
+            );
             return true;
           }
         }
@@ -81,7 +83,9 @@ class AndroidFileHandler implements IPlatformFileHandler {
 
       return false;
     } catch (e) {
-      LoggingService.warning('Error checking for Eden files in Android folder: $e');
+      LoggingService.warning(
+        'Error checking for Eden files in Android folder: $e',
+      );
       return false;
     }
   }
@@ -89,13 +93,13 @@ class AndroidFileHandler implements IPlatformFileHandler {
   /// Checks if a filename represents an Android-related Eden file
   bool _isAndroidRelatedFile(String filename) {
     final name = filename.toLowerCase();
-    
+
     // Check for Android-specific files that might be part of Eden distribution
     return (name.contains('eden') && name.endsWith('.apk')) ||
-           (name.contains('android') && name.contains('eden')) ||
-           (name == 'androidmanifest.xml' && _isInEdenContext(name)) ||
-           (name.endsWith('.dex') && name.contains('eden')) ||
-           (name.endsWith('.so') && name.contains('eden'));
+        (name.contains('android') && name.contains('eden')) ||
+        (name == 'androidmanifest.xml' && _isInEdenContext(name)) ||
+        (name.endsWith('.dex') && name.contains('eden')) ||
+        (name.endsWith('.so') && name.contains('eden'));
   }
 
   /// Checks if a file is in an Eden-related context
@@ -121,14 +125,13 @@ class AndroidFileHandler implements IPlatformFileHandler {
 
       // Check file signature (APK files are ZIP files with specific structure)
       final bytes = await file.openRead(0, 4).first;
-      
+
       // ZIP file signature: 0x504B0304 (PK..)
       if (bytes.length >= 4 &&
           bytes[0] == 0x50 &&
           bytes[1] == 0x4B &&
           (bytes[2] == 0x03 || bytes[2] == 0x05 || bytes[2] == 0x07) &&
           (bytes[3] == 0x04 || bytes[3] == 0x06 || bytes[3] == 0x08)) {
-        
         // For APK files, we should also check for AndroidManifest.xml
         // but for simplicity, we'll rely on the ZIP signature and extension
         return extension == '.apk';
