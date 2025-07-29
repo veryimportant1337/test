@@ -20,7 +20,7 @@ class LoggingService {
     try {
       // Use a "logs" subfolder within the app's documents directory.
       final directory = await getApplicationDocumentsDirectory();
-      final logDir = Directory(path.join("${directory.path}/Eden", 'logs'));
+      final logDir = Directory(path.join("${directory.path}\\Eden", 'logs'));
       if (!await logDir.exists()) {
         await logDir.create(recursive: true);
       }
@@ -31,8 +31,8 @@ class LoggingService {
       // Create a new log file with the current date.
       final date = DateTime.now();
       final dateString =
-          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}::${date.hour.toString().padLeft(2, '0')}";
-      _logFilePath = path.join(logDir.path, 'eden_updater_$dateString.log');
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}-${date.hour.toString().padLeft(2, '0')}-${date.minute.toString().padLeft(2, '0')}-${date.second.toString().padLeft(2, '0')}";
+      _logFilePath = path.join(logDir.path, '$dateString.log');
       final logFile = File(_logFilePath!);
 
       _logSink = logFile.openWrite(mode: FileMode.append);
@@ -128,7 +128,7 @@ class LoggingService {
   static Future<List<File>> getLogFiles() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final logDir = Directory(path.join("${directory.path}/Eden", 'logs'));
+      final logDir = Directory(path.join("${directory.path}\\Eden", 'logs'));
       if (!await logDir.exists()) return [];
 
       // Correctly filter the stream before collecting to a list.
