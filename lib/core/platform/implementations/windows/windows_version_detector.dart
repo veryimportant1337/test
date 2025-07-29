@@ -57,10 +57,11 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
       }
 
       // If no stored version or executable not found, check if Eden is actually installed
-      final installPath = await _installationService.getInstallPath();
+      final channelInstallPath = await _installationService
+          .getChannelInstallPath();
       final fileHandler = WindowsFileHandler();
       final expectedExecutablePath = fileHandler.getEdenExecutablePath(
-        installPath,
+        channelInstallPath,
         channel,
       );
 
@@ -81,14 +82,7 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
       }
 
       LoggingService.info('No Eden installation found for channel: $channel');
-      return UpdateInfo(
-        version: 'Not installed',
-        downloadUrl: '',
-        releaseNotes: '',
-        releaseDate: DateTime.now(),
-        fileSize: 0,
-        releaseUrl: '',
-      );
+      return null;
     } catch (e) {
       LoggingService.error('Error getting current Windows version', e);
       return UpdateInfo(
@@ -112,10 +106,11 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
       await _preferencesService.setCurrentVersion(channel, updateInfo.version);
 
       // Try to find and store the executable path
-      final installPath = await _installationService.getInstallPath();
+      final channelInstallPath = await _installationService
+          .getChannelInstallPath();
       final fileHandler = WindowsFileHandler();
       final expectedExecutablePath = fileHandler.getEdenExecutablePath(
-        installPath,
+        channelInstallPath,
         channel,
       );
 
@@ -132,7 +127,7 @@ class WindowsVersionDetector implements IPlatformVersionDetector {
 
         // Try to find the executable in the installation directory
         final foundExecutable = await _findEdenExecutableInDirectory(
-          installPath,
+          channelInstallPath,
         );
         if (foundExecutable != null) {
           await _preferencesService.setEdenExecutablePath(

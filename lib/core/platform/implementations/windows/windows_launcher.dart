@@ -138,10 +138,12 @@ class WindowsLauncher implements IPlatformLauncher {
     LoggingService.info('Channel: $channel');
 
     try {
-      // First, try the expected path
+      // First, try the channel-specific installation path
+      final channelInstallPath = await _installationService
+          .getChannelInstallPath();
       final fileHandler = WindowsFileHandler();
       final expectedPath = fileHandler.getEdenExecutablePath(
-        installPath,
+        channelInstallPath,
         channel,
       );
       LoggingService.info('Checking expected path: $expectedPath');

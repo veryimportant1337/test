@@ -37,27 +37,33 @@ class WindowsInstaller implements IPlatformInstaller {
       // Windows installer handles archive files (zip, 7z, tar.gz, etc.)
       // but not APK or AppImage files
       final extension = path.extension(filePath).toLowerCase();
-
-      // Supported archive formats for Windows
-      final supportedExtensions = ['.zip', '.7z', '.tar', '.gz', '.rar'];
-
-      // Check if it's a supported archive format
-      if (supportedExtensions.any((ext) => extension.endsWith(ext))) {
-        return true;
-      }
-
-      // Check for compound extensions like .tar.gz
       final fileName = path.basename(filePath).toLowerCase();
-      if (fileName.endsWith('.tar.gz') || fileName.endsWith('.tar.bz2')) {
-        return true;
-      }
 
-      // Reject APK and AppImage files
+      // Explicitly reject unsupported formats first
       if (extension == '.apk' || extension == '.appimage') {
         return false;
       }
 
-      return false;
+      // Check for compound extensions like .tar.gz first
+      if (fileName.endsWith('.tar.gz') ||
+          fileName.endsWith('.tar.bz2') ||
+          fileName.endsWith('.tar.xz')) {
+        return true;
+      }
+
+      // Supported single extensions for Windows
+      final supportedExtensions = [
+        '.zip',
+        '.7z',
+        '.rar',
+        '.tar',
+        '.gz',
+        '.bz2',
+        '.xz',
+      ];
+
+      // Check if it's a supported archive format
+      return supportedExtensions.contains(extension);
     } catch (e) {
       LoggingService.error(
         'Error checking if Windows installer can handle file',
