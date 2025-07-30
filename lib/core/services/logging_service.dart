@@ -20,7 +20,7 @@ class LoggingService {
     try {
       // Use a "logs" subfolder within the app's documents directory.
       final directory = await getApplicationDocumentsDirectory();
-      final logDir = Directory(path.join("${directory.path}\\Eden", 'logs'));
+      final logDir = Directory(path.join(directory.path, 'Eden', 'logs'));
       if (!await logDir.exists()) {
         await logDir.create(recursive: true);
       }
@@ -131,7 +131,7 @@ class LoggingService {
   static Future<List<File>> getLogFiles() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final logDir = Directory(path.join("${directory.path}\\Eden", 'logs'));
+      final logDir = Directory(path.join(directory.path, 'Eden', 'logs'));
       if (!await logDir.exists()) return [];
 
       // Correctly filter the stream before collecting to a list.
