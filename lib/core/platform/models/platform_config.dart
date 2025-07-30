@@ -1,3 +1,5 @@
+import 'dart:io';
+
 /// Configuration class that defines platform-specific capabilities and settings
 class PlatformConfig {
   /// Human-readable name of the platform
@@ -205,12 +207,62 @@ class PlatformConfig {
 
   /// Platform-specific asset search patterns for Linux
   static List<bool Function(String)> _getLinuxAssetPatterns() {
+    // Detect system architecture
+    final systemArch = _getSystemArchitecture();
+
     return [
-      (String name) => name.contains('appimage') && !name.contains('zsync'),
-      (String name) => name.contains('linux') && name.endsWith('.tar.gz'),
-      (String name) => name.contains('linux') && name.endsWith('.zip'),
-      (String name) => name.endsWith('.appimage') && !name.contains('zsync'),
+      // First priority: Architecture-specific AppImage
+      (String name) =>
+          name.contains('appimage') &&
+          name.contains(systemArch) &&
+          !name.contains('zsync'),
+      // Second priority: Linux archives with correct architecture
+      (String name) =>
+          name.contains('linux') &&
+          name.contains(systemArch) &&
+          name.endsWith('.tar.gz'),
+      (String name) =>
+          name.contains('linux') &&
+          name.contains(systemArch) &&
+          name.endsWith('.zip'),
+      // Third priority: Generic AppImage (fallback)
+      (String name) =>
+          name.endsWith('.appimage') &&
+          !name.contains('zsync') &&
+          !name.contains('aarch64') &&
+          !name.contains('armv'),
+      // Fourth priority: Any Linux archive (fallback)
+      (String name) =>
+          name.contains('linux') &&
+          name.endsWith('.tar.gz') &&
+          !name.contains('aarch64') &&
+          !name.contains('armv'),
     ];
+  }
+
+  /// Detect system architecture for Linux
+  static String _getSystemArchitecture() {
+    try {
+      // Try to detect architecture from Platform.operatingSystemVersion
+      // or use a reasonable default mapping
+      final osVersion = Platform.operatingSystemVersion.toLowerCase();
+
+      if (osVersion.contains('x86_64') || osVersion.contains('amd64')) {
+        return 'amd64';
+      } else if (osVersion.contains('aarch64') || osVersion.contains('arm64')) {
+        return 'aarch64';
+      } else if (osVersion.contains('armv7') || osVersion.contains('armhf')) {
+        return 'armv7';
+      } else if (osVersion.contains('armv9')) {
+        return 'armv9';
+      }
+
+      // Default to amd64 for x86_64 systems
+      return 'amd64';
+    } catch (e) {
+      // Fallback to amd64 if detection fails
+      return 'amd64';
+    }
   }
 
   /// Platform-specific asset search patterns for Android
