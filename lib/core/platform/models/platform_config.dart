@@ -87,7 +87,8 @@ class PlatformConfig {
     supportedFileExtensions: const ['.AppImage', '.tar.gz', '.zip'],
     supportedChannels: const ['stable', 'nightly'],
     supportsShortcuts: true,
-    supportsPortableMode: true,
+    supportsPortableMode:
+        false, // Linux doesn't support portable mode - only Windows does
     requiresExecutablePermissions: true,
     defaultInstallationDir: 'Eden',
     assetSearchPatterns: _getLinuxAssetPatterns(),
@@ -95,7 +96,8 @@ class PlatformConfig {
     nightlyChannelAvailable: true,
     featureFlags: const {
       'supportsShortcutCreation': true,
-      'supportsPortableInstallation': true,
+      'supportsPortableInstallation':
+          false, // Linux doesn't support portable mode
       'requiresExecutablePermissions': true,
       'supportsAutoLaunch': true,
     },
