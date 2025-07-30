@@ -322,15 +322,36 @@ file_size=${updateInfo.fileSize}
 
           // Check if it's an AppImage file
           if (fileName.endsWith('.appimage') || fileName.contains('appimage')) {
-            // Try to extract version from filename
-            // Common patterns: Eden_v1.2.3.AppImage, eden-v1.2.3-nightly.AppImage
-            final versionMatch = RegExp(
-              r'eden[_-]?v?([0-9]+\.[0-9]+\.[0-9]+[^\.]*)',
-              caseSensitive: false,
-            ).firstMatch(fileName);
+            // Enhanced version detection patterns
+            final versionPatterns = [
+              // Eden_v1.2.3.AppImage, eden-v1.2.3-nightly.AppImage
+              RegExp(
+                r'eden[_-]?v?([0-9]+\.[0-9]+\.[0-9]+[^\.]*)',
+                caseSensitive: false,
+              ),
+              // Eden-1.2.3.AppImage
+              RegExp(r'eden[_-]([0-9]+\.[0-9]+\.[0-9]+)', caseSensitive: false),
+              // Eden_20240101.AppImage (date-based versions)
+              RegExp(r'eden[_-]([0-9]{8})', caseSensitive: false),
+              // Eden_build_123.AppImage (build numbers)
+              RegExp(r'eden[_-]build[_-]([0-9]+)', caseSensitive: false),
+            ];
 
-            if (versionMatch != null) {
-              final version = 'v${versionMatch.group(1)}';
+            String? detectedVersion;
+            for (final pattern in versionPatterns) {
+              final match = pattern.firstMatch(fileName);
+              if (match != null) {
+                detectedVersion = match.group(1);
+                break;
+              }
+            }
+
+            if (detectedVersion != null) {
+              // Normalize version format
+              final version = detectedVersion.startsWith('v')
+                  ? detectedVersion
+                  : 'v$detectedVersion';
+
               LoggingService.info(
                 'Detected version from AppImage filename: $version',
               );
@@ -343,6 +364,27 @@ file_size=${updateInfo.fileSize}
               );
 
               return version;
+            } else {
+              // If no version pattern matches, try to get version from file metadata
+              final metadataVersion = await _extractAppImageMetadata(
+                entity.path,
+              );
+              if (metadataVersion != null) {
+                LoggingService.info(
+                  'Detected version from AppImage metadata: $metadataVersion',
+                );
+
+                await _preferencesService.setCurrentVersion(
+                  channel,
+                  metadataVersion,
+                );
+                await _preferencesService.setEdenExecutablePath(
+                  channel,
+                  entity.path,
+                );
+
+                return metadataVersion;
+              }
             }
           }
         }
@@ -353,6 +395,31 @@ file_size=${updateInfo.fileSize}
       LoggingService.warning('Error detecting AppImage version', e);
       return null;
     }
+  }
+
+  /// Extract version information from AppImage metadata
+  Future<String?> _extractAppImageMetadata(String appImagePath) async {
+    try {
+      // Try to extract version from AppImage using --appimage-extract-and-run
+      final result = await Process.run(appImagePath, [
+        '--version',
+      ], runInShell: true).timeout(const Duration(seconds: 5));
+
+      if (result.exitCode == 0) {
+        final output = result.stdout.toString();
+        // Look for version patterns in the output
+        final versionMatch = RegExp(
+          r'v?([0-9]+\.[0-9]+\.[0-9]+)',
+        ).firstMatch(output);
+        if (versionMatch != null) {
+          return 'v${versionMatch.group(1)}';
+        }
+      }
+    } catch (e) {
+      LoggingService.info('Could not extract AppImage metadata: $e');
+    }
+
+    return null;
   }
 
   /// Find Eden executable in the installation directory

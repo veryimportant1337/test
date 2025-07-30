@@ -208,6 +208,7 @@ class LinuxLauncher implements IPlatformLauncher {
     // Get the updater executable path (current executable) for smart shortcuts
     final updaterExecutable = Platform.resolvedExecutable;
 
+    // Enhanced desktop entry with better integration
     return '''[Desktop Entry]
 Version=1.0
 Type=Application
@@ -218,6 +219,9 @@ Icon=applications-games
 Terminal=false
 Categories=Game;Emulator;
 StartupNotify=true
+MimeType=application/x-nintendo-switch-rom;
+Keywords=nintendo;switch;emulator;gaming;eden;
+StartupWMClass=Eden
 ''';
   }
 

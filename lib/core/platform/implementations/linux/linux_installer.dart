@@ -409,6 +409,22 @@ class LinuxInstaller implements IPlatformInstaller {
         return true;
       }
 
+      // Enhanced AppImage detection: check file magic bytes
+      try {
+        final bytes = await file.openRead(0, 4).first;
+        // AppImage files typically start with ELF magic bytes (0x7F, 'E', 'L', 'F')
+        if (bytes.length >= 4 &&
+            bytes[0] == 0x7F &&
+            bytes[1] == 0x45 &&
+            bytes[2] == 0x4C &&
+            bytes[3] == 0x46) {
+          LoggingService.info('File has ELF magic bytes, likely AppImage');
+          return true;
+        }
+      } catch (e) {
+        LoggingService.info('Could not read file magic bytes: $e');
+      }
+
       return false;
     } catch (e) {
       LoggingService.error('Error checking if file is AppImage', e);

@@ -240,4 +240,63 @@ class LinuxFileHandler implements IPlatformFileHandler {
       rethrow;
     }
   }
+
+  /// Check if a file has the executable bit set
+  Future<bool> hasExecutablePermission(String filePath) async {
+    try {
+      final statResult = await Process.run('stat', ['-c', '%a', filePath]);
+      if (statResult.exitCode == 0) {
+        final permissions = statResult.stdout.toString().trim();
+        // Check if any position has execute permission (1, 3, 5, or 7)
+        return permissions.contains('1') ||
+            permissions.contains('3') ||
+            permissions.contains('5') ||
+            permissions.contains('7');
+      }
+      return false;
+    } catch (e) {
+      LoggingService.error('Error checking executable permission', e);
+      return false;
+    }
+  }
+
+  /// Get the MIME type of a file using the file command
+  Future<String?> getFileMimeType(String filePath) async {
+    try {
+      final result = await Process.run('file', ['--mime-type', '-b', filePath]);
+      if (result.exitCode == 0) {
+        return result.stdout.toString().trim();
+      }
+      return null;
+    } catch (e) {
+      LoggingService.info('Could not determine MIME type for $filePath: $e');
+      return null;
+    }
+  }
+
+  /// Validate that a file is a valid AppImage
+  Future<bool> isValidAppImage(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) return false;
+
+      // Check if it's executable
+      if (!await hasExecutablePermission(filePath)) {
+        LoggingService.info('AppImage file is not executable: $filePath');
+        return false;
+      }
+
+      // Check MIME type
+      final mimeType = await getFileMimeType(filePath);
+      if (mimeType != null && !mimeType.contains('executable')) {
+        LoggingService.info('AppImage has unexpected MIME type: $mimeType');
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      LoggingService.error('Error validating AppImage', e);
+      return false;
+    }
+  }
 }
