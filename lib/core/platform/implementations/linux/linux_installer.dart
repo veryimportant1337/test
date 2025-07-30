@@ -32,16 +32,28 @@ class LinuxInstaller implements IPlatformInstaller {
   @override
   Future<bool> canHandle(String filePath) async {
     try {
+      LoggingService.debug(
+        '[Linux] Checking if installer can handle file: $filePath',
+      );
+
       final file = File(filePath);
-      if (!await file.exists()) return false;
+      if (!await file.exists()) {
+        LoggingService.debug('[Linux] File does not exist: $filePath');
+        return false;
+      }
 
       // Linux installer handles AppImage files and archive files
       // but not APK files
       final extension = path.extension(filePath).toLowerCase();
       final fileName = path.basename(filePath).toLowerCase();
 
+      LoggingService.debug(
+        '[Linux] File extension: $extension, filename: $fileName',
+      );
+
       // Check for AppImage files
       if (extension == '.appimage' || fileName.contains('appimage')) {
+        LoggingService.debug('[Linux] Accepting AppImage file: $fileName');
         return true;
       }
 
@@ -50,6 +62,7 @@ class LinuxInstaller implements IPlatformInstaller {
 
       // Check if it's a supported archive format
       if (supportedExtensions.any((ext) => extension.endsWith(ext))) {
+        LoggingService.debug('[Linux] Accepting archive format: $extension');
         return true;
       }
 
@@ -57,18 +70,23 @@ class LinuxInstaller implements IPlatformInstaller {
       if (fileName.endsWith('.tar.gz') ||
           fileName.endsWith('.tar.bz2') ||
           fileName.endsWith('.tar.xz')) {
+        LoggingService.debug(
+          '[Linux] Accepting compound archive format: $fileName',
+        );
         return true;
       }
 
       // Reject APK files
       if (extension == '.apk') {
+        LoggingService.debug('[Linux] Rejecting APK file: $extension');
         return false;
       }
 
+      LoggingService.debug('[Linux] Cannot handle file: $filePath');
       return false;
     } catch (e) {
       LoggingService.error(
-        'Error checking if Linux installer can handle file',
+        '[Linux] Error checking if installer can handle file: $filePath',
         e,
       );
       return false;
@@ -84,21 +102,27 @@ class LinuxInstaller implements IPlatformInstaller {
     required Function(double) onProgress,
     required Function(String) onStatusUpdate,
   }) async {
-    LoggingService.info('Starting Linux installation');
-    LoggingService.info('File path: $filePath');
-    LoggingService.info('Update version: ${updateInfo.version}');
-    LoggingService.info('Create shortcuts: $createShortcuts');
-    LoggingService.info('Portable mode: $portableMode');
+    LoggingService.info('[Linux] Starting installation operation');
+    LoggingService.info('[Linux] File path: $filePath');
+    LoggingService.info('[Linux] Update version: ${updateInfo.version}');
+    LoggingService.info('[Linux] Create shortcuts: $createShortcuts');
+    LoggingService.info('[Linux] Portable mode: $portableMode');
+    LoggingService.debug(
+      '[Linux] Platform: Linux ${Platform.operatingSystemVersion}',
+    );
 
     try {
       // Verify file exists
       final file = File(filePath);
       if (!await file.exists()) {
+        LoggingService.error('[Linux] Installation file not found: $filePath');
         throw UpdateException('Installation file not found', filePath);
       }
 
       // Check if it's an AppImage file
+      LoggingService.debug('[Linux] Determining installation method...');
       if (await _isAppImageFile(filePath)) {
+        LoggingService.info('[Linux] Installing as AppImage');
         await _installAppImage(
           filePath,
           updateInfo,
@@ -108,6 +132,7 @@ class LinuxInstaller implements IPlatformInstaller {
           onStatusUpdate: onStatusUpdate,
         );
       } else {
+        LoggingService.info('[Linux] Installing as archive');
         // Handle archive installation
         await _installArchive(
           filePath,
@@ -119,9 +144,11 @@ class LinuxInstaller implements IPlatformInstaller {
         );
       }
 
-      LoggingService.info('Linux installation completed successfully');
+      LoggingService.info(
+        '[Linux] Installation operation completed successfully',
+      );
     } catch (e) {
-      LoggingService.error('Linux installation failed', e);
+      LoggingService.error('[Linux] Installation operation failed', e);
       if (e is AppException) {
         rethrow;
       }
@@ -134,15 +161,23 @@ class LinuxInstaller implements IPlatformInstaller {
     String installPath,
     UpdateInfo updateInfo,
   ) async {
-    LoggingService.info('Performing Linux post-install setup');
+    LoggingService.info('[Linux] Performing post-install setup');
+    LoggingService.debug('[Linux] Install path: $installPath');
+    LoggingService.debug('[Linux] Update version: ${updateInfo.version}');
 
     try {
       // Find and verify the Eden executable exists
       final channel = await _preferencesService.getReleaseChannel();
+      LoggingService.debug('[Linux] Channel: $channel');
+
       final fileHandler = LinuxFileHandler();
       final expectedExecutablePath = fileHandler.getEdenExecutablePath(
         installPath,
         channel,
+      );
+
+      LoggingService.debug(
+        '[Linux] Expected executable path: $expectedExecutablePath',
       );
 
       if (await File(expectedExecutablePath).exists()) {
@@ -152,17 +187,21 @@ class LinuxInstaller implements IPlatformInstaller {
           expectedExecutablePath,
         );
         LoggingService.info(
-          'Stored Eden executable path: $expectedExecutablePath',
+          '[Linux] Stored Eden executable path: $expectedExecutablePath',
         );
 
         // Ensure the executable has proper permissions
+        LoggingService.debug('[Linux] Setting executable permissions...');
         await _makeExecutable(expectedExecutablePath);
       } else {
         LoggingService.warning(
-          'Eden executable not found at expected path: $expectedExecutablePath',
+          '[Linux] Eden executable not found at expected path: $expectedExecutablePath',
         );
 
         // Try to find the executable in the installation directory
+        LoggingService.debug(
+          '[Linux] Searching for Eden executable in installation directory...',
+        );
         final foundExecutable = await _findEdenExecutableInDirectory(
           installPath,
         );
@@ -172,19 +211,22 @@ class LinuxInstaller implements IPlatformInstaller {
             foundExecutable,
           );
           LoggingService.info(
-            'Found and stored Eden executable path: $foundExecutable',
+            '[Linux] Found and stored Eden executable path: $foundExecutable',
           );
 
           // Ensure the executable has proper permissions
+          LoggingService.debug(
+            '[Linux] Setting executable permissions for found executable...',
+          );
           await _makeExecutable(foundExecutable);
         } else {
           LoggingService.error(
-            'Could not find Eden executable in installation directory',
+            '[Linux] Could not find Eden executable in installation directory',
           );
         }
       }
     } catch (e) {
-      LoggingService.error('Error during Linux post-install setup', e);
+      LoggingService.error('[Linux] Error during post-install setup', e);
       // Don't throw here as the main installation was successful
     }
   }

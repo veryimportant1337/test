@@ -9,6 +9,7 @@ import 'interfaces/i_platform_installation_service.dart';
 import 'models/platform_config.dart';
 import 'models/installation_context.dart';
 import 'exceptions/platform_exceptions.dart';
+import '../services/logging_service.dart';
 
 // Platform implementations
 import 'implementations/windows/windows_installer.dart';
@@ -55,25 +56,70 @@ class PlatformFactory {
   /// Uses caching to avoid repeated platform detection calls.
   /// Throws [PlatformNotSupportedException] if the current platform is not supported.
   static PlatformConfig getCurrentPlatformConfig() {
-    _cachedConfig ??= _detectPlatformConfig();
+    if (_cachedConfig == null) {
+      LoggingService.debug(
+        '[PlatformFactory] Detecting platform configuration...',
+      );
+      _cachedConfig = _detectPlatformConfig();
+      LoggingService.info(
+        '[PlatformFactory] Platform detected: ${_cachedConfig!.name}',
+      );
+      LoggingService.debug(
+        '[PlatformFactory] Platform capabilities: ${_cachedConfig!.supportedChannels}, shortcuts: ${_cachedConfig!.supportsShortcuts}, portable: ${_cachedConfig!.supportsPortableMode}',
+      );
+    }
     return _cachedConfig!;
   }
 
   /// Internal method to detect the current platform configuration
   static PlatformConfig _detectPlatformConfig() {
-    if (Platform.isWindows) return PlatformConfig.windows;
-    if (Platform.isLinux) return PlatformConfig.linux;
-    if (Platform.isAndroid) return PlatformConfig.android;
-    if (Platform.isMacOS) return PlatformConfig.macos;
+    LoggingService.debug(
+      '[PlatformFactory] Running platform detection checks...',
+    );
+    LoggingService.debug(
+      '[PlatformFactory] Platform.operatingSystem: ${Platform.operatingSystem}',
+    );
+    LoggingService.debug(
+      '[PlatformFactory] Platform.operatingSystemVersion: ${Platform.operatingSystemVersion}',
+    );
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    if (Platform.isWindows) {
+      LoggingService.debug('[PlatformFactory] Platform.isWindows: true');
+      return PlatformConfig.windows;
+    }
+    if (Platform.isLinux) {
+      LoggingService.debug('[PlatformFactory] Platform.isLinux: true');
+      return PlatformConfig.linux;
+    }
+    if (Platform.isAndroid) {
+      LoggingService.debug('[PlatformFactory] Platform.isAndroid: true');
+      return PlatformConfig.android;
+    }
+    if (Platform.isMacOS) {
+      LoggingService.debug(
+        '[PlatformFactory] Platform.isMacOS: true (unsupported)',
+      );
+      return PlatformConfig.macos;
+    }
+
+    final platformName = _getCurrentPlatformName();
+    LoggingService.error(
+      '[PlatformFactory] Unsupported platform detected: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific installer implementation
   static IPlatformInstaller createInstaller() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating installer for platform: $platformName',
+    );
+
     final fileHandler = createFileHandler();
 
     if (Platform.isWindows) {
+      LoggingService.info('[PlatformFactory] Instantiating WindowsInstaller');
       return WindowsInstaller(
         ExtractionService(fileHandler),
         InstallationService(PreferencesService(), fileHandler),
@@ -81,6 +127,7 @@ class PlatformFactory {
       );
     }
     if (Platform.isLinux) {
+      LoggingService.info('[PlatformFactory] Instantiating LinuxInstaller');
       return LinuxInstaller(
         ExtractionService(fileHandler),
         InstallationService(PreferencesService(), fileHandler),
@@ -88,33 +135,48 @@ class PlatformFactory {
       );
     }
     if (Platform.isAndroid) {
+      LoggingService.info('[PlatformFactory] Instantiating AndroidInstaller');
       return AndroidInstaller();
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No installer implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific launcher implementation
   static IPlatformLauncher createLauncher() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating launcher for platform: $platformName',
+    );
+
     final fileHandler = createFileHandler();
 
     if (Platform.isWindows) {
+      LoggingService.info('[PlatformFactory] Instantiating WindowsLauncher');
       return WindowsLauncher(
         PreferencesService(),
         InstallationService(PreferencesService(), fileHandler),
       );
     }
     if (Platform.isLinux) {
+      LoggingService.info('[PlatformFactory] Instantiating LinuxLauncher');
       return LinuxLauncher(
         PreferencesService(),
         InstallationService(PreferencesService(), fileHandler),
       );
     }
     if (Platform.isAndroid) {
+      LoggingService.info('[PlatformFactory] Instantiating AndroidLauncher');
       return AndroidLauncher(PreferencesService());
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No launcher implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific launcher implementation with provided services
@@ -122,104 +184,198 @@ class PlatformFactory {
     PreferencesService preferencesService,
     InstallationService installationService,
   ) {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating launcher with services for platform: $platformName',
+    );
+
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsLauncher with provided services',
+      );
       return WindowsLauncher(preferencesService, installationService);
     }
     if (Platform.isLinux) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating LinuxLauncher with provided services',
+      );
       return LinuxLauncher(preferencesService, installationService);
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidLauncher with provided services',
+      );
       return AndroidLauncher(preferencesService);
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No launcher implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific file handler implementation
   static IPlatformFileHandler createFileHandler() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating file handler for platform: $platformName',
+    );
+
     if (Platform.isWindows) {
+      LoggingService.info('[PlatformFactory] Instantiating WindowsFileHandler');
       return WindowsFileHandler();
     }
     if (Platform.isLinux) {
+      LoggingService.info('[PlatformFactory] Instantiating LinuxFileHandler');
       return LinuxFileHandler();
     }
     if (Platform.isAndroid) {
+      LoggingService.info('[PlatformFactory] Instantiating AndroidFileHandler');
       return AndroidFileHandler();
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No file handler implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific version detector implementation
   static IPlatformVersionDetector createVersionDetector() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating version detector for platform: $platformName',
+    );
+
     final fileHandler = createFileHandler();
 
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsVersionDetector',
+      );
       return WindowsVersionDetector(
         PreferencesService(),
         InstallationService(PreferencesService(), fileHandler),
       );
     }
     if (Platform.isLinux) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating LinuxVersionDetector',
+      );
       return LinuxVersionDetector(
         PreferencesService(),
         InstallationService(PreferencesService(), fileHandler),
       );
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidVersionDetector',
+      );
       return AndroidVersionDetector(PreferencesService());
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No version detector implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific update service implementation
   static IPlatformUpdateService createUpdateService() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating update service for platform: $platformName',
+    );
+
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsUpdateService',
+      );
       return WindowsUpdateService(PreferencesService());
     }
     if (Platform.isLinux) {
+      LoggingService.info('[PlatformFactory] Instantiating LinuxUpdateService');
       return LinuxUpdateService(PreferencesService());
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidUpdateService',
+      );
       return AndroidUpdateService(PreferencesService());
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No update service implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific update service implementation with provided services
   static IPlatformUpdateService createUpdateServiceWithServices(
     PreferencesService preferencesService,
   ) {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating update service with services for platform: $platformName',
+    );
+
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsUpdateService with provided services',
+      );
       return WindowsUpdateService(preferencesService);
     }
     if (Platform.isLinux) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating LinuxUpdateService with provided services',
+      );
       return LinuxUpdateService(preferencesService);
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidUpdateService with provided services',
+      );
       return AndroidUpdateService(preferencesService);
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No update service implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific installation service implementation
   static IPlatformInstallationService createInstallationService() {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating installation service for platform: $platformName',
+    );
+
     final fileHandler = createFileHandler();
 
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsInstallationService',
+      );
       return WindowsInstallationService(fileHandler, PreferencesService());
     }
     if (Platform.isLinux) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating LinuxInstallationService',
+      );
       return LinuxInstallationService(fileHandler, PreferencesService());
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidInstallationService',
+      );
       return AndroidInstallationService(fileHandler, PreferencesService());
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No installation service implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Creates a platform-specific installation service implementation with provided services
@@ -227,17 +383,34 @@ class PlatformFactory {
     IPlatformFileHandler fileHandler,
     PreferencesService preferencesService,
   ) {
+    final platformName = _getCurrentPlatformName();
+    LoggingService.debug(
+      '[PlatformFactory] Creating installation service with services for platform: $platformName',
+    );
+
     if (Platform.isWindows) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating WindowsInstallationService with provided services',
+      );
       return WindowsInstallationService(fileHandler, preferencesService);
     }
     if (Platform.isLinux) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating LinuxInstallationService with provided services',
+      );
       return LinuxInstallationService(fileHandler, preferencesService);
     }
     if (Platform.isAndroid) {
+      LoggingService.info(
+        '[PlatformFactory] Instantiating AndroidInstallationService with provided services',
+      );
       return AndroidInstallationService(fileHandler, preferencesService);
     }
 
-    throw PlatformNotSupportedException(_getCurrentPlatformName());
+    LoggingService.error(
+      '[PlatformFactory] No installation service implementation available for platform: $platformName',
+    );
+    throw PlatformNotSupportedException(platformName);
   }
 
   /// Gets the current platform name as a string
