@@ -56,6 +56,8 @@ class ServiceLocator {
     // Register platform-specific services as singletons
     final platformInstaller = PlatformFactory.createInstaller();
     final platformVersionDetector = PlatformFactory.createVersionDetector();
+    final platformUpdateService =
+        PlatformFactory.createUpdateServiceWithServices(preferencesService);
 
     // Register the main update service
     locator.register<UpdateService>(
@@ -66,6 +68,7 @@ class ServiceLocator {
         locator.get<LauncherService>(),
         platformInstaller,
         platformVersionDetector,
+        platformUpdateService,
       ),
     );
   }

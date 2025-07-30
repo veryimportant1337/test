@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:path/path.dart' as path;
 import '../core/constants/app_constants.dart';
 import '../core/errors/app_exceptions.dart';
 import '../core/services/logging_service.dart';
@@ -7,6 +6,7 @@ import '../core/platform/platform_factory.dart';
 import '../core/platform/interfaces/i_platform_installer.dart';
 import '../core/platform/interfaces/i_platform_version_detector.dart';
 import '../core/platform/interfaces/i_platform_file_handler.dart';
+import '../core/platform/interfaces/i_platform_update_service.dart';
 import '../models/update_info.dart';
 import 'network/github_api_service.dart';
 import 'storage/preferences_service.dart';
@@ -23,6 +23,7 @@ class UpdateService {
   final IPlatformInstaller _platformInstaller;
   final IPlatformVersionDetector _versionDetector;
   final IPlatformFileHandler _platformFileHandler;
+  final IPlatformUpdateService _platformUpdateService;
 
   // Session cache for latest versions to avoid redundant API calls
   final Map<String, UpdateInfo> _sessionCache = {};
@@ -41,7 +42,8 @@ class UpdateService {
         ),
       ),
       _platformInstaller = PlatformFactory.createInstaller(),
-      _versionDetector = PlatformFactory.createVersionDetector();
+      _versionDetector = PlatformFactory.createVersionDetector(),
+      _platformUpdateService = PlatformFactory.createUpdateService();
 
   /// Constructor with dependency injection (for better testing and service locator)
   UpdateService.withServices(
@@ -51,14 +53,15 @@ class UpdateService {
     this._launcherService,
     this._platformInstaller,
     this._versionDetector,
+    this._platformUpdateService,
   ) : _platformFileHandler = PlatformFactory.createFileHandler();
 
   // Channel management
   Future<String> getReleaseChannel() async {
     final channel = await _preferencesService.getReleaseChannel();
 
-    // Check if channel is supported on current platform
-    if (!PlatformFactory.isChannelSupported(channel)) {
+    // Check if channel is supported on current platform using platform abstraction
+    if (!_platformUpdateService.isChannelSupported(channel)) {
       await setReleaseChannel(AppConstants.stableChannel);
       return AppConstants.stableChannel;
     }
@@ -67,8 +70,8 @@ class UpdateService {
   }
 
   Future<void> setReleaseChannel(String channel) async {
-    // Check if channel is supported on current platform
-    if (!PlatformFactory.isChannelSupported(channel)) {
+    // Check if channel is supported on current platform using platform abstraction
+    if (!_platformUpdateService.isChannelSupported(channel)) {
       return; // Ignore the request
     }
 
@@ -117,7 +120,7 @@ class UpdateService {
     LoggingService.info('Starting update download and installation');
     LoggingService.info('Update version: ${updateInfo.version}');
     LoggingService.info('Download URL: ${updateInfo.downloadUrl}');
-    final platformInfo = PlatformFactory.getPlatformInfo();
+    final platformInfo = _platformUpdateService.getPlatformInfo();
     LoggingService.info('Platform: ${platformInfo['platformName']}');
     LoggingService.info('Create shortcuts: $createShortcuts');
     LoggingService.info('Portable mode: $portableMode');
@@ -171,7 +174,7 @@ class UpdateService {
         LoggingService.error(
           'Platform installer cannot handle file: $downloadedFilePath',
         );
-        final platformInfo = PlatformFactory.getPlatformInfo();
+        final platformInfo = _platformUpdateService.getPlatformInfo();
         throw UpdateException(
           'Unsupported file type for this platform',
           'The downloaded file cannot be installed on ${platformInfo['platformName']}',
@@ -189,40 +192,15 @@ class UpdateService {
     }
   }
 
-  /// Clean up temporary files and directories
+  /// Clean up temporary files and directories using platform abstraction
   Future<void> _cleanupTempFiles(
     Directory? tempDir,
     String? downloadedFilePath,
   ) async {
-    try {
-      if (downloadedFilePath != null) {
-        final file = File(downloadedFilePath);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-
-      if (tempDir != null && await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
-
-      final systemTempDir = Directory.systemTemp;
-      await for (final entity in systemTempDir.list()) {
-        if (entity is Directory) {
-          final name = path.basename(entity.path);
-          if (name.startsWith('eden_updater_') ||
-              name.startsWith('eden_extract_')) {
-            try {
-              await entity.delete(recursive: true);
-            } catch (e) {
-              // Ignore
-            }
-          }
-        }
-      }
-    } catch (e) {
-      LoggingService.warning('Failed to cleanup temp files', e);
-    }
+    await _platformUpdateService.cleanupTempFiles(
+      tempDir?.path,
+      downloadedFilePath,
+    );
   }
 
   /// Launch Eden emulator
@@ -243,28 +221,22 @@ class UpdateService {
   Future<void> setInstallPath(String newPath) =>
       _preferencesService.setInstallPath(newPath);
 
-  /// Get Android installation metadata for a channel
-  Future<Map<String, String>?> getAndroidInstallationMetadata(
-    String channel,
-  ) async {
-    try {
-      final metadataString = await _preferencesService.getString(
-        'android_install_metadata_$channel',
-      );
-      if (metadataString == null) return null;
+  /// Get platform-specific installation metadata for a channel
+  Future<Map<String, String>?> getInstallationMetadata(String channel) async {
+    return await _platformUpdateService.getInstallationMetadata(channel);
+  }
 
-      final metadata = <String, String>{};
-      for (final pair in metadataString.split('|')) {
-        final parts = pair.split('=');
-        if (parts.length == 2) {
-          metadata[parts[0]] = parts[1];
-        }
-      }
-      return metadata;
-    } catch (e) {
-      LoggingService.error('Failed to get Android installation metadata', e);
-      return null;
-    }
+  /// Store platform-specific installation metadata for a channel
+  Future<void> storeInstallationMetadata(
+    String channel,
+    Map<String, String> metadata,
+  ) async {
+    await _platformUpdateService.storeInstallationMetadata(channel, metadata);
+  }
+
+  /// Clear platform-specific installation metadata for a channel
+  Future<void> clearInstallationMetadata(String channel) async {
+    await _platformUpdateService.clearInstallationMetadata(channel);
   }
 
   /// Debug method to manually set version for testing

@@ -4,6 +4,8 @@ import 'interfaces/i_platform_installer.dart';
 import 'interfaces/i_platform_launcher.dart';
 import 'interfaces/i_platform_file_handler.dart';
 import 'interfaces/i_platform_version_detector.dart';
+import 'interfaces/i_platform_update_service.dart';
+import 'interfaces/i_platform_installation_service.dart';
 import 'models/platform_config.dart';
 import 'models/installation_context.dart';
 import 'exceptions/platform_exceptions.dart';
@@ -13,14 +15,20 @@ import 'implementations/windows/windows_installer.dart';
 import 'implementations/windows/windows_launcher.dart';
 import 'implementations/windows/windows_file_handler.dart';
 import 'implementations/windows/windows_version_detector.dart';
+import 'implementations/windows/windows_update_service.dart';
+import 'implementations/windows/windows_installation_service.dart';
 import 'implementations/linux/linux_installer.dart';
 import 'implementations/linux/linux_launcher.dart';
 import 'implementations/linux/linux_file_handler.dart';
 import 'implementations/linux/linux_version_detector.dart';
+import 'implementations/linux/linux_update_service.dart';
+import 'implementations/linux/linux_installation_service.dart';
 import 'implementations/android/android_installer.dart';
 import 'implementations/android/android_launcher.dart';
 import 'implementations/android/android_file_handler.dart';
 import 'implementations/android/android_version_detector.dart';
+import 'implementations/android/android_update_service.dart';
+import 'implementations/android/android_installation_service.dart';
 
 // Services for dependency injection
 import '../../services/extraction/extraction_service.dart';
@@ -160,6 +168,73 @@ class PlatformFactory {
     }
     if (Platform.isAndroid) {
       return AndroidVersionDetector(PreferencesService());
+    }
+
+    throw PlatformNotSupportedException(_getCurrentPlatformName());
+  }
+
+  /// Creates a platform-specific update service implementation
+  static IPlatformUpdateService createUpdateService() {
+    if (Platform.isWindows) {
+      return WindowsUpdateService(PreferencesService());
+    }
+    if (Platform.isLinux) {
+      return LinuxUpdateService(PreferencesService());
+    }
+    if (Platform.isAndroid) {
+      return AndroidUpdateService(PreferencesService());
+    }
+
+    throw PlatformNotSupportedException(_getCurrentPlatformName());
+  }
+
+  /// Creates a platform-specific update service implementation with provided services
+  static IPlatformUpdateService createUpdateServiceWithServices(
+    PreferencesService preferencesService,
+  ) {
+    if (Platform.isWindows) {
+      return WindowsUpdateService(preferencesService);
+    }
+    if (Platform.isLinux) {
+      return LinuxUpdateService(preferencesService);
+    }
+    if (Platform.isAndroid) {
+      return AndroidUpdateService(preferencesService);
+    }
+
+    throw PlatformNotSupportedException(_getCurrentPlatformName());
+  }
+
+  /// Creates a platform-specific installation service implementation
+  static IPlatformInstallationService createInstallationService() {
+    final fileHandler = createFileHandler();
+
+    if (Platform.isWindows) {
+      return WindowsInstallationService(fileHandler, PreferencesService());
+    }
+    if (Platform.isLinux) {
+      return LinuxInstallationService(fileHandler, PreferencesService());
+    }
+    if (Platform.isAndroid) {
+      return AndroidInstallationService(fileHandler, PreferencesService());
+    }
+
+    throw PlatformNotSupportedException(_getCurrentPlatformName());
+  }
+
+  /// Creates a platform-specific installation service implementation with provided services
+  static IPlatformInstallationService createInstallationServiceWithServices(
+    IPlatformFileHandler fileHandler,
+    PreferencesService preferencesService,
+  ) {
+    if (Platform.isWindows) {
+      return WindowsInstallationService(fileHandler, preferencesService);
+    }
+    if (Platform.isLinux) {
+      return LinuxInstallationService(fileHandler, preferencesService);
+    }
+    if (Platform.isAndroid) {
+      return AndroidInstallationService(fileHandler, preferencesService);
     }
 
     throw PlatformNotSupportedException(_getCurrentPlatformName());
