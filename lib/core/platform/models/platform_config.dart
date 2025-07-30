@@ -21,6 +21,21 @@ class PlatformConfig {
   /// Default installation directory name for this platform
   final String defaultInstallationDir;
 
+  /// Platform-specific asset search patterns for finding appropriate downloads
+  final List<bool Function(String)> assetSearchPatterns;
+
+  /// Default system architecture for this platform
+  final String defaultArchitecture;
+
+  /// Whether this platform supports nightly channel (runtime availability check)
+  final bool nightlyChannelAvailable;
+
+  /// Platform-specific feature flags
+  final Map<String, bool> featureFlags;
+
+  /// Platform-specific configuration values
+  final Map<String, dynamic> platformSpecificConfig;
+
   const PlatformConfig({
     required this.name,
     required this.supportedFileExtensions,
@@ -29,35 +44,74 @@ class PlatformConfig {
     required this.supportsPortableMode,
     required this.requiresExecutablePermissions,
     required this.defaultInstallationDir,
+    required this.assetSearchPatterns,
+    required this.defaultArchitecture,
+    required this.nightlyChannelAvailable,
+    required this.featureFlags,
+    required this.platformSpecificConfig,
   });
 
   /// Windows platform configuration
-  static const windows = PlatformConfig(
+  static final windows = PlatformConfig(
     name: 'Windows',
-    supportedFileExtensions: ['.exe', '.zip', '.7z'],
-    supportedChannels: ['stable', 'nightly'],
+    supportedFileExtensions: const ['.exe', '.zip', '.7z'],
+    supportedChannels: const ['stable', 'nightly'],
     supportsShortcuts: true,
     supportsPortableMode: true,
     requiresExecutablePermissions: false,
     defaultInstallationDir: 'Eden',
+    assetSearchPatterns: _getWindowsAssetPatterns(),
+    defaultArchitecture: 'amd64',
+    nightlyChannelAvailable: true,
+    featureFlags: const {
+      'supportsShortcutCreation': true,
+      'supportsPortableInstallation': true,
+      'requiresAdminRights': false,
+      'supportsAutoLaunch': true,
+    },
+    platformSpecificConfig: const {
+      'shortcutExtension': '.lnk',
+      'executableExtensions': ['.exe'],
+      'archiveExtensions': ['.zip', '.7z'],
+      'maxRetries': 10,
+      'retryDelaySeconds': 3,
+      'requestTimeoutSeconds': 10,
+    },
   );
 
   /// Linux platform configuration
-  static const linux = PlatformConfig(
+  static final linux = PlatformConfig(
     name: 'Linux',
-    supportedFileExtensions: ['.AppImage', '.tar.gz', '.zip'],
-    supportedChannels: ['stable', 'nightly'],
+    supportedFileExtensions: const ['.AppImage', '.tar.gz', '.zip'],
+    supportedChannels: const ['stable', 'nightly'],
     supportsShortcuts: true,
     supportsPortableMode: true,
     requiresExecutablePermissions: true,
     defaultInstallationDir: 'Eden',
+    assetSearchPatterns: _getLinuxAssetPatterns(),
+    defaultArchitecture: 'amd64',
+    nightlyChannelAvailable: true,
+    featureFlags: const {
+      'supportsShortcutCreation': true,
+      'supportsPortableInstallation': true,
+      'requiresExecutablePermissions': true,
+      'supportsAutoLaunch': true,
+    },
+    platformSpecificConfig: const {
+      'shortcutExtension': '.desktop',
+      'executableExtensions': ['.AppImage'],
+      'archiveExtensions': ['.tar.gz', '.zip'],
+      'maxRetries': 10,
+      'retryDelaySeconds': 3,
+      'requestTimeoutSeconds': 10,
+    },
   );
 
   /// Android platform configuration
-  static const android = PlatformConfig(
+  static final android = PlatformConfig(
     name: 'Android',
-    supportedFileExtensions: ['.apk'],
-    supportedChannels: [
+    supportedFileExtensions: const ['.apk'],
+    supportedChannels: const [
       'stable',
       'nightly',
     ], // Both channels supported, availability checked at runtime
@@ -65,18 +119,117 @@ class PlatformConfig {
     supportsPortableMode: false,
     requiresExecutablePermissions: false,
     defaultInstallationDir: '', // Not applicable for Android
+    assetSearchPatterns: _getAndroidAssetPatterns(),
+    defaultArchitecture: 'arm64',
+    nightlyChannelAvailable: false, // Currently disabled for Android
+    featureFlags: const {
+      'supportsShortcutCreation': false,
+      'supportsPortableInstallation': false,
+      'requiresExecutablePermissions': false,
+      'supportsAutoLaunch': true,
+    },
+    platformSpecificConfig: const {
+      'packageExtension': '.apk',
+      'maxRetries': 10,
+      'retryDelaySeconds': 3,
+      'requestTimeoutSeconds': 10,
+    },
   );
 
   /// macOS platform configuration (future support)
-  static const macos = PlatformConfig(
+  static final macos = PlatformConfig(
     name: 'macOS',
-    supportedFileExtensions: ['.dmg', '.app', '.zip'],
-    supportedChannels: ['stable', 'nightly'],
+    supportedFileExtensions: const ['.dmg', '.app', '.zip'],
+    supportedChannels: const ['stable', 'nightly'],
     supportsShortcuts: true,
     supportsPortableMode: true,
     requiresExecutablePermissions: true,
     defaultInstallationDir: 'Eden',
+    assetSearchPatterns: _getMacOSAssetPatterns(),
+    defaultArchitecture: 'amd64',
+    nightlyChannelAvailable: true,
+    featureFlags: const {
+      'supportsShortcutCreation': true,
+      'supportsPortableInstallation': true,
+      'requiresExecutablePermissions': true,
+      'supportsAutoLaunch': true,
+    },
+    platformSpecificConfig: const {
+      'shortcutExtension': '.app',
+      'executableExtensions': ['.app'],
+      'archiveExtensions': ['.dmg', '.zip'],
+      'maxRetries': 10,
+      'retryDelaySeconds': 3,
+      'requestTimeoutSeconds': 10,
+    },
   );
+
+  /// Gets platform-specific configuration value
+  T? getConfigValue<T>(String key) {
+    return platformSpecificConfig[key] as T?;
+  }
+
+  /// Gets platform-specific feature flag
+  bool getFeatureFlag(String flag) {
+    return featureFlags[flag] ?? false;
+  }
+
+  /// Gets network configuration values from platform config
+  int get maxRetries => getConfigValue<int>('maxRetries') ?? 10;
+  int get retryDelaySeconds => getConfigValue<int>('retryDelaySeconds') ?? 3;
+  int get requestTimeoutSeconds =>
+      getConfigValue<int>('requestTimeoutSeconds') ?? 10;
+
+  /// Platform-specific asset search patterns for Windows
+  static List<bool Function(String)> _getWindowsAssetPatterns() {
+    return [
+      (String name) =>
+          name.contains('windows') &&
+          name.contains('x86_64') &&
+          name.endsWith('.7z'),
+      (String name) =>
+          name.contains('windows') &&
+          name.contains('amd64') &&
+          name.endsWith('.zip'),
+      (String name) =>
+          name.contains('windows') &&
+          (name.contains('x86_64') || name.contains('amd64')) &&
+          (name.endsWith('.7z') || name.endsWith('.zip')),
+      (String name) =>
+          name.contains('windows') &&
+          !name.contains('arm64') &&
+          !name.contains('aarch64') &&
+          (name.endsWith('.7z') || name.endsWith('.zip')),
+    ];
+  }
+
+  /// Platform-specific asset search patterns for Linux
+  static List<bool Function(String)> _getLinuxAssetPatterns() {
+    return [
+      (String name) => name.contains('appimage') && !name.contains('zsync'),
+      (String name) => name.contains('linux') && name.endsWith('.tar.gz'),
+      (String name) => name.contains('linux') && name.endsWith('.zip'),
+      (String name) => name.endsWith('.appimage') && !name.contains('zsync'),
+    ];
+  }
+
+  /// Platform-specific asset search patterns for Android
+  static List<bool Function(String)> _getAndroidAssetPatterns() {
+    return [
+      (String name) => name.endsWith('.apk'),
+      (String name) => name.contains('android') && name.endsWith('.apk'),
+    ];
+  }
+
+  /// Platform-specific asset search patterns for macOS
+  static List<bool Function(String)> _getMacOSAssetPatterns() {
+    return [
+      (String name) => name.contains('macos') && name.endsWith('.dmg'),
+      (String name) => name.contains('mac') && name.endsWith('.dmg'),
+      (String name) => name.contains('darwin') && name.endsWith('.zip'),
+      (String name) => name.contains('macos') && name.endsWith('.zip'),
+    ];
+  }
 
   @override
   String toString() =>

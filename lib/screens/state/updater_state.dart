@@ -20,16 +20,16 @@ class UpdaterState {
   // Auto-launch state
   final bool autoLaunchInProgress;
 
-  const UpdaterState({
+  UpdaterState({
     this.currentVersion,
     this.latestVersion,
     this.status = UpdateStatus.idle,
     this.downloadProgress = 0.0,
     this.releaseChannel = ReleaseChannel.stable,
-    this.createShortcuts = AppConstants.defaultCreateShortcuts,
+    bool? createShortcuts,
     this.portableMode = false, // Always false by default
     this.autoLaunchInProgress = false,
-  });
+  }) : createShortcuts = createShortcuts ?? AppConstants.defaultCreateShortcuts;
 
   /// Computed properties for better readability
 
