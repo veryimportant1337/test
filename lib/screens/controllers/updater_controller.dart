@@ -280,7 +280,10 @@ class UpdaterController {
           );
         },
         onStatusUpdate: (status) {
-          LoggingService.debug('[UpdaterController] Status: $status');
+          // Only log significant status changes, not progress percentages
+          if (!status.contains('%')) {
+            LoggingService.debug('[UpdaterController] Status: $status');
+          }
         },
       );
 
