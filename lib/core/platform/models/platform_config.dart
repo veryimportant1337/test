@@ -57,7 +57,10 @@ class PlatformConfig {
   static const android = PlatformConfig(
     name: 'Android',
     supportedFileExtensions: ['.apk'],
-    supportedChannels: ['stable'], // Nightly support depends on availability
+    supportedChannels: [
+      'stable',
+      'nightly',
+    ], // Both channels supported, availability checked at runtime
     supportsShortcuts: false,
     supportsPortableMode: false,
     requiresExecutablePermissions: false,

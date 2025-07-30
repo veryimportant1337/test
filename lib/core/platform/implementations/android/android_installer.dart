@@ -134,20 +134,83 @@ class AndroidInstaller implements IPlatformInstaller {
       LoggingService.info('Launching APK installer using Android Intent');
       onProgress(0.5);
 
-      final intent = AndroidIntent(
-        action: 'android.intent.action.VIEW',
-        data: 'file://$filePath',
-        type: 'application/vnd.android.package-archive',
-        flags: [
-          0x10000000, // FLAG_ACTIVITY_NEW_TASK
-          0x00000001, // FLAG_GRANT_READ_URI_PERMISSION
-        ],
-      );
+      // Try multiple intent approaches for better compatibility
+      bool launched = false;
 
-      onStatusUpdate('Opening system installer...');
-      onProgress(0.8);
+      // Method 1: Standard APK installation intent
+      try {
+        final intent = AndroidIntent(
+          action: 'android.intent.action.VIEW',
+          data: 'file://$filePath',
+          type: 'application/vnd.android.package-archive',
+          flags: [
+            0x10000000, // FLAG_ACTIVITY_NEW_TASK
+            0x00000001, // FLAG_GRANT_READ_URI_PERMISSION
+          ],
+        );
 
-      await intent.launch();
+        onStatusUpdate('Opening system installer...');
+        onProgress(0.7);
+
+        await intent.launch();
+        launched = true;
+        LoggingService.info('APK installer launched via standard intent');
+      } catch (e) {
+        LoggingService.warning('Standard APK intent failed: $e');
+      }
+
+      // Method 2: Alternative intent with different flags
+      if (!launched) {
+        try {
+          final intent = AndroidIntent(
+            action: 'android.intent.action.INSTALL_PACKAGE',
+            data: 'file://$filePath',
+            type: 'application/vnd.android.package-archive',
+            flags: [
+              0x10000000, // FLAG_ACTIVITY_NEW_TASK
+              0x00000002, // FLAG_GRANT_WRITE_URI_PERMISSION
+              0x00000001, // FLAG_GRANT_READ_URI_PERMISSION
+            ],
+          );
+
+          onStatusUpdate('Trying alternative installer...');
+          onProgress(0.8);
+
+          await intent.launch();
+          launched = true;
+          LoggingService.info('APK installer launched via alternative intent');
+        } catch (e) {
+          LoggingService.warning('Alternative APK intent failed: $e');
+        }
+      }
+
+      // Method 3: Generic file viewer intent
+      if (!launched) {
+        try {
+          final intent = AndroidIntent(
+            action: 'android.intent.action.VIEW',
+            data: 'file://$filePath',
+            flags: [0x10000000], // FLAG_ACTIVITY_NEW_TASK
+          );
+
+          onStatusUpdate('Opening with file viewer...');
+          onProgress(0.85);
+
+          await intent.launch();
+          launched = true;
+          LoggingService.info('APK installer launched via file viewer intent');
+        } catch (e) {
+          LoggingService.warning('File viewer intent failed: $e');
+        }
+      }
+
+      if (!launched) {
+        throw PlatformOperationException(
+          'Android',
+          'installApk',
+          'All APK installation methods failed. Please install the APK manually from: $filePath',
+        );
+      }
 
       onProgress(0.9);
       onStatusUpdate('Installation handed off to system');
@@ -155,6 +218,9 @@ class AndroidInstaller implements IPlatformInstaller {
       LoggingService.info('APK installer launched successfully');
     } catch (e) {
       LoggingService.error('Failed to launch APK installer: $e');
+      if (e is PlatformOperationException) {
+        rethrow;
+      }
       throw PlatformOperationException(
         'Android',
         'installApk',

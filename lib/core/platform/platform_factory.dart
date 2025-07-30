@@ -103,10 +103,7 @@ class PlatformFactory {
       );
     }
     if (Platform.isAndroid) {
-      return AndroidLauncher(
-        PreferencesService(),
-        InstallationService(PreferencesService(), fileHandler),
-      );
+      return AndroidLauncher(PreferencesService());
     }
 
     throw PlatformNotSupportedException(_getCurrentPlatformName());
@@ -124,7 +121,7 @@ class PlatformFactory {
       return LinuxLauncher(preferencesService, installationService);
     }
     if (Platform.isAndroid) {
-      return AndroidLauncher(preferencesService, installationService);
+      return AndroidLauncher(preferencesService);
     }
 
     throw PlatformNotSupportedException(_getCurrentPlatformName());

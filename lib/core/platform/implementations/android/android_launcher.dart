@@ -4,7 +4,6 @@ import 'dart:io';
 
 import '../../../services/logging_service.dart';
 import '../../../../services/storage/preferences_service.dart';
-import '../../../../services/installation/installation_service.dart';
 import '../../interfaces/i_platform_launcher.dart';
 import '../../exceptions/platform_exceptions.dart';
 
@@ -14,9 +13,8 @@ import '../../exceptions/platform_exceptions.dart';
 /// and intent-based launching with fallback mechanisms.
 class AndroidLauncher implements IPlatformLauncher {
   final PreferencesService _preferencesService;
-  final InstallationService _installationService;
 
-  AndroidLauncher(this._preferencesService, this._installationService);
+  AndroidLauncher(this._preferencesService);
 
   @override
   Future<void> launchEden() async {
