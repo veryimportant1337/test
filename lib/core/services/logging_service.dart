@@ -110,19 +110,16 @@ class LoggingService {
     final logMessage = '[$timestamp] [$level] $message';
 
     // Always print to console for live debugging.
-    print(logMessage);
 
     // Write to the file sink if it's available.
     _logSink?.writeln(logMessage);
 
     if (error != null) {
       final errorMessage = '  Error: $error';
-      print(errorMessage);
       _logSink?.writeln(errorMessage);
     }
     if (stackTrace != null) {
       final stackTraceMessage = '  Stack Trace:\n$stackTrace';
-      print(stackTraceMessage);
       _logSink?.writeln(stackTraceMessage);
     }
   }

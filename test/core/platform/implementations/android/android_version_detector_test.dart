@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/services.dart';
 
-import '../../../../../lib/core/platform/implementations/android/android_version_detector.dart';
-import '../../../../../lib/services/storage/preferences_service.dart';
-import '../../../../../lib/models/update_info.dart';
+import 'package:eden_updater/core/platform/implementations/android/android_version_detector.dart';
+import 'package:eden_updater/services/storage/preferences_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

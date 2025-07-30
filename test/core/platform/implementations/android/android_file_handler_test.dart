@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../../../lib/core/platform/implementations/android/android_file_handler.dart';
+import 'package:eden_updater/core/platform/implementations/android/android_file_handler.dart';
 
 void main() {
   group('AndroidFileHandler', () {

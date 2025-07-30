@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../../../lib/core/platform/implementations/android/android_installer.dart';
-import '../../../../../lib/core/platform/exceptions/platform_exceptions.dart';
-import '../../../../../lib/models/update_info.dart';
+import 'package:eden_updater/core/platform/implementations/android/android_installer.dart';
+import 'package:eden_updater/core/platform/exceptions/platform_exceptions.dart';
+import 'package:eden_updater/models/update_info.dart';
 
 void main() {
   group('AndroidInstaller', () {

@@ -1,11 +1,8 @@
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as path;
 
 import 'package:eden_updater/core/platform/implementations/linux/linux_version_detector.dart';
 import 'package:eden_updater/services/installation/installation_service.dart';
 import 'package:eden_updater/services/storage/preferences_service.dart';
-import 'package:eden_updater/models/update_info.dart';
 import 'package:eden_updater/core/platform/implementations/linux/linux_file_handler.dart';
 
 void main() {

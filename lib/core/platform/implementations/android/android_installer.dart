@@ -164,7 +164,9 @@ class AndroidInstaller implements IPlatformInstaller {
     Function(String) onStatusUpdate,
   ) async {
     try {
-      LoggingService.info('[Android] Launching APK installer using Android Intent');
+      LoggingService.info(
+        '[Android] Launching APK installer using Android Intent',
+      );
       LoggingService.debug('[Android] APK file path: $filePath');
       onProgress(0.5);
 
@@ -172,7 +174,9 @@ class AndroidInstaller implements IPlatformInstaller {
       bool launched = false;
 
       // Method 1: Standard APK installation intent
-      LoggingService.debug('[Android] Attempting Method 1: Standard APK installation intent');
+      LoggingService.debug(
+        '[Android] Attempting Method 1: Standard APK installation intent',
+      );
       try {
         final intent = AndroidIntent(
           action: 'android.intent.action.VIEW',
@@ -189,14 +193,18 @@ class AndroidInstaller implements IPlatformInstaller {
 
         await intent.launch();
         launched = true;
-        LoggingService.info('[Android] APK installer launched via standard intent');
+        LoggingService.info(
+          '[Android] APK installer launched via standard intent',
+        );
       } catch (e) {
         LoggingService.warning('[Android] Standard APK intent failed: $e');
       }
 
       // Method 2: Alternative intent with different flags
       if (!launched) {
-        LoggingService.debug('[Android] Attempting Method 2: Alternative intent with different flags');
+        LoggingService.debug(
+          '[Android] Attempting Method 2: Alternative intent with different flags',
+        );
         try {
           final intent = AndroidIntent(
             action: 'android.intent.action.INSTALL_PACKAGE',
@@ -214,7 +222,9 @@ class AndroidInstaller implements IPlatformInstaller {
 
           await intent.launch();
           launched = true;
-          LoggingService.info('[Android] APK installer launched via alternative intent');
+          LoggingService.info(
+            '[Android] APK installer launched via alternative intent',
+          );
         } catch (e) {
           LoggingService.warning('[Android] Alternative APK intent failed: $e');
         }
@@ -222,7 +232,9 @@ class AndroidInstaller implements IPlatformInstaller {
 
       // Method 3: Generic file viewer intent
       if (!launched) {
-        LoggingService.debug('[Android] Attempting Method 3: Generic file viewer intent');
+        LoggingService.debug(
+          '[Android] Attempting Method 3: Generic file viewer intent',
+        );
         try {
           final intent = AndroidIntent(
             action: 'android.intent.action.VIEW',
@@ -235,7 +247,9 @@ class AndroidInstaller implements IPlatformInstaller {
 
           await intent.launch();
           launched = true;
-          LoggingService.info('[Android] APK installer launched via file viewer intent');
+          LoggingService.info(
+            '[Android] APK installer launched via file viewer intent',
+          );
         } catch (e) {
           LoggingService.warning('[Android] File viewer intent failed: $e');
         }

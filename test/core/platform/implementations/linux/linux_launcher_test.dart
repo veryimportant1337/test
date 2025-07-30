@@ -5,7 +5,6 @@ import 'package:path/path.dart' as path;
 import 'package:eden_updater/core/platform/implementations/linux/linux_launcher.dart';
 import 'package:eden_updater/services/installation/installation_service.dart';
 import 'package:eden_updater/services/storage/preferences_service.dart';
-import 'package:eden_updater/core/errors/app_exceptions.dart';
 import 'package:eden_updater/core/platform/implementations/linux/linux_file_handler.dart';
 
 void main() {

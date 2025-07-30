@@ -1,5 +1,3 @@
-import '../../../models/update_info.dart';
-
 /// Abstract interface for platform-specific update service operations
 abstract class IPlatformUpdateService {
   /// Gets the supported release channels for the current platform
