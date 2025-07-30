@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 import '../../../services/logging_service.dart';
+import '../../../utils/url_launcher_utils.dart';
 import '../../../../services/storage/preferences_service.dart';
 import '../../interfaces/i_platform_launcher.dart';
 import '../../exceptions/platform_exceptions.dart';
@@ -147,37 +148,24 @@ class AndroidLauncher implements IPlatformLauncher {
   Future<bool> _tryLaunchWithUrlLauncher(String packageName) async {
     try {
       // Method 1: Try using url_launcher with app-specific URI
+      LoggingService.info('Trying url_launcher for package: $packageName');
       if (packageName == 'dev.eden.eden_emulator') {
-        final uri = Uri.parse('android-app://dev.eden.eden_emulator');
-        final canLaunch = await canLaunchUrl(uri);
-        LoggingService.info(
-          'canLaunchUrl app URI for $packageName: $canLaunch',
-        );
-
-        if (canLaunch) {
-          final result = await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
-          if (result) {
-            return true;
-          }
+        final appUri = 'android-app://dev.eden.eden_emulator';
+        final success = await UrlLauncherUtils.launchUrlRobust(appUri);
+        if (success) {
+          LoggingService.info('Successfully launched app URI for $packageName');
+          return true;
         }
       }
 
       // Fallback to package URI
-      final uri = Uri.parse('package:$packageName');
-      final canLaunch = await canLaunchUrl(uri);
-      LoggingService.info('canLaunchUrl for $packageName: $canLaunch');
-
-      if (canLaunch) {
-        final result = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
+      final packageUri = 'package:$packageName';
+      final success = await UrlLauncherUtils.launchUrlRobust(packageUri);
+      if (success) {
+        LoggingService.info(
+          'Successfully launched package URI for $packageName',
         );
-        if (result) {
-          return true;
-        }
+        return true;
       }
     } catch (e) {
       LoggingService.info('url_launcher failed for $packageName: $e');
@@ -239,11 +227,10 @@ class AndroidLauncher implements IPlatformLauncher {
             LoggingService.info('Found Eden APK: ${entity.path}');
 
             // Try to open the APK file (this will show the app info or launch it)
-            final uri = Uri.parse('file://${entity.path}');
-            final canLaunch = await canLaunchUrl(uri);
+            final fileUri = 'file://${entity.path}';
+            final success = await UrlLauncherUtils.launchUrlRobust(fileUri);
 
-            if (canLaunch) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            if (success) {
               LoggingService.info('Opened Eden APK file');
               return;
             }
