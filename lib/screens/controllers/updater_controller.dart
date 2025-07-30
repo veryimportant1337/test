@@ -7,6 +7,7 @@ import '../state/updater_state.dart';
 import '../../core/services/service_locator.dart'; // Import the service locator
 import '../../core/services/logging_service.dart';
 import '../../core/platform/platform_factory.dart';
+import '../../core/platform/models/platform_config.dart';
 
 /// Controller for managing updater operations and business logic
 class UpdaterController {
@@ -305,30 +306,33 @@ class UpdaterController {
   /// Launch Eden emulator
   Future<void> launchEden() async {
     LoggingService.info('[UpdaterController] Launching Eden emulator...');
-    final platformInfo = PlatformFactory.getPlatformInfo();
-    LoggingService.info(
-      '[UpdaterController] Platform: ${platformInfo['platformName']}',
-    );
+    final platformConfig = PlatformFactory.getCurrentPlatformConfig();
+    LoggingService.info('[UpdaterController] Platform: ${platformConfig.name}');
 
     try {
       await _updateService.launchEden();
       LoggingService.info('[UpdaterController] Eden launched successfully');
 
-      // Exit the app after launching Eden
-      if (Platform.isAndroid) {
-        LoggingService.info(
-          '[UpdaterController] Exiting updater app (Android - SystemNavigator.pop)',
-        );
-        SystemNavigator.pop();
-      } else {
-        LoggingService.info(
-          '[UpdaterController] Exiting updater app (Desktop - exit(0))',
-        );
-        exit(0);
-      }
+      // Exit the app after launching Eden using platform-appropriate method
+      _exitUpdaterApp(platformConfig);
     } catch (e) {
       LoggingService.error('[UpdaterController] Failed to launch Eden', e);
       rethrow;
+    }
+  }
+
+  /// Exit the updater app using platform-appropriate method
+  void _exitUpdaterApp(PlatformConfig platformConfig) {
+    if (platformConfig.name == 'Android') {
+      LoggingService.info(
+        '[UpdaterController] Exiting updater app (Android - SystemNavigator.pop)',
+      );
+      SystemNavigator.pop();
+    } else {
+      LoggingService.info(
+        '[UpdaterController] Exiting updater app (Desktop - exit(0))',
+      );
+      exit(0);
     }
   }
 

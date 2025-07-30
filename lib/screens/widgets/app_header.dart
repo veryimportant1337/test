@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/platform/platform_factory.dart';
 import 'logs_dialog.dart';
 
 /// Header widget for the updater screen
@@ -104,8 +104,9 @@ class AppHeader extends StatelessWidget {
                 ),
               if (kDebugMode && onTestVersion != null)
                 const SizedBox(height: 8),
-              // Logs button (always visible on Android for debugging)
-              if (Platform.isAndroid) ...[
+              // Logs button (visible on Android for debugging)
+              if (PlatformFactory.getCurrentPlatformConfig().name ==
+                  'Android') ...[
                 Container(
                   decoration: BoxDecoration(
                     color: theme.colorScheme.secondary.withValues(alpha: 0.2),

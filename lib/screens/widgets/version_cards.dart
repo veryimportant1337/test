@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:android_intent_plus/android_intent.dart';
 import '../../models/update_info.dart';
+import '../../core/platform/platform_factory.dart';
 
 /// Widget displaying current and latest version information
 class VersionCards extends StatelessWidget {
@@ -185,7 +185,8 @@ class _VersionCard extends StatelessWidget {
       }
 
       // Method 4: Android Intent fallback
-      if (!launched && Platform.isAndroid) {
+      if (!launched &&
+          PlatformFactory.getCurrentPlatformConfig().name == 'Android') {
         try {
           final intent = AndroidIntent(
             action: 'android.intent.action.VIEW',
